@@ -107,9 +107,30 @@ void capNhatCauHinh(CauHinh& mon) {
 	if (boNhoDem != "") mon.giaCongThem = stoi(boNhoDem);
 }
 
+//IN CẤU HÌNH
+void inCauHinh(string tieuDeCauHinh, CauHinh danhSach[], int& thuTu) {
+	cout << tieuDeCauHinh << endl;
+	veDuong(37);
+	cout << format("| {:<15} | {:<15} |", "SIZE", "GIÁ CỘNG THÊM") << endl;
+	veDuong(37);
+
+	for (int i = 0; i < thuTu; i++) {
+		cout << format("| {:<15} | {:<15} |", danhSach[i].size, danhSach[i].giaCongThem) << endl;
+	}
+
+	veDuong(37);
+	cout << endl;
+}
+
 //THÊM CẤU HÌNH
 void themSize(string fileCauHinh) {
 	veTieuDe("THÊM SIZE MỚI");
+
+	CauHinh danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileTuNguonCauHinh(fileCauHinh, danhSach, thuTu)) {
+		inCauHinh("* CẤU HÌNH HIỆN TẠI *", danhSach, thuTu);
+	}
 
 	ofstream themSize(fileCauHinh, ios::app);
 	if (!themSize.is_open()) {
@@ -149,7 +170,9 @@ void xoaSize(string fileCauHinh) {
 
 	CauHinh danhSach[TOI_DA];
 	int thuTu = 0;
-	if (!docFileTuNguonCauHinh(fileCauHinh, danhSach, thuTu)) return;
+	if (docFileTuNguonCauHinh(fileCauHinh, danhSach, thuTu)) {
+		inCauHinh("* CẤU HÌNH HIỆN TẠI *", danhSach, thuTu);
+	}
 
 	cout << "Nhập size muốn xóa: ";
 	string sizeXoa;
@@ -191,7 +214,9 @@ void suaCauHinh(string fileCauHinh) {
 
 	CauHinh danhSach[TOI_DA];
 	int thuTu = 0;
-	if (!docFileTuNguonCauHinh(fileCauHinh, danhSach, thuTu)) return;
+	if (docFileTuNguonCauHinh(fileCauHinh, danhSach, thuTu)) {
+		inCauHinh("* CẤU HÌNH HIỆN TẠI *", danhSach, thuTu);
+	}
 
 	cout << "Nhập size muốn sửa: ";
 	string sizeSua;
