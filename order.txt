@@ -1,0 +1,5 @@
+// order nên được chia thành Mã|Bàn|Đồ uống|Size|Đường|Đá|Topping|Đồ ăn nhẹ|Ghi chú
+// Ví dụ
+HD001|Ban 01|Cafe Den|M|100|50|Khong|Banh ngot|It duong
+HD002|Ban 05|Tra Dao|L|50|100|Thach vai|Khong|Ngot vua
+HD003|Ban 02|Bac Xiu|S|100|100|Tran chau|Banh mi|Nhieu da
