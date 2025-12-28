@@ -10,6 +10,8 @@
 
 using namespace std;
 
+// Thứ tự của file text lưu trữ order.txt nên là Mã|Bàn|Đồ uống|Size|Đường|Đá|Topping|Đồ ăn nhẹ|Ghi chú
+
 // --- CẤU TRÚC DỮ LIỆU ORDER ---
 struct Order {
     string maHD;
