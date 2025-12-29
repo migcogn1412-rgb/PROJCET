@@ -1,3 +1,6 @@
+#ifndef TRACUULICHSUDATBAN_H
+#define TRACUULICHSUDATBAN_H
+
 #include <iostream>
 #include <fstream>
 #include <string>
