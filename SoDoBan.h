@@ -1,3 +1,6 @@
+#ifndef SODOBAN_H
+#define SODOBAN_H
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -6,16 +9,18 @@
 
 using namespace std;
 
+// ===== STRUCT =====
 struct Ban {
     int soBan;
     int trangThai; // 0: trống, 1: có khách
 };
 
+// ===== ĐỌC / GHI FILE =====
 vector<Ban> docSoDoBan(const string& tenFile) {
     vector<Ban> dsBan;
     ifstream file(tenFile);
-
     string dong;
+
     while (getline(file, dong)) {
         size_t pos = dong.find('|');
         if (pos != string::npos) {
@@ -37,6 +42,7 @@ void ghiSoDoBan(const string& tenFile, const vector<Ban>& dsBan) {
     file.close();
 }
 
+// ===== HIỂN THỊ =====
 void hienThiBan(const vector<Ban>& dsBan) {
     cout << "\n=== TRẠNG THÁI BÀN ===\n";
     for (const auto& b : dsBan) {
@@ -45,10 +51,17 @@ void hienThiBan(const vector<Ban>& dsBan) {
     }
 }
 
+void hienThiMenu() {
+    cout << "\n===== MENU =====\n";
+    cout << "1. Xử lý hóa đơn\n";
+    cout << "0. Thoát\n";
+    cout << "Lựa chọn: ";
+}
+
+// ===== XỬ LÝ HÓA ĐƠN =====
 void xuLyHoaDon(vector<Ban>& dsBan, int soBan) {
     for (auto& b : dsBan) {
         if (b.soBan == soBan && b.trangThai == 1) {
-
             double tongTien;
             int phuongThuc;
             char xacNhan;
@@ -57,7 +70,6 @@ void xuLyHoaDon(vector<Ban>& dsBan, int soBan) {
             cout << "TỔNG TIỀN: ";
             cin >> tongTien;
 
-            cout << "Hãy chọn phương thức thanh toán:\n";
             cout << "1. Tiền mặt\n";
             cout << "2. Chuyển khoản\n";
             cout << "Lựa chọn: ";
@@ -67,52 +79,56 @@ void xuLyHoaDon(vector<Ban>& dsBan, int soBan) {
             cin >> xacNhan;
 
             if (xacNhan == 'y' || xacNhan == 'Y') {
-                // In hoa don
                 cout << "\n===== HÓA ĐƠN =====\n";
                 cout << "Bàn: " << soBan << endl;
-                cout << "Tổng tiền: " << fixed << setprecision(0) << tongTien << " VND\n";
+                cout << "Tổng tiền: " << fixed << setprecision(0)
+                     << tongTien << " VND\n";
                 cout << "Thanh toán: "
                      << (phuongThuc == 1 ? "Tiền mặt" : "Chuyển khoản") << endl;
                 cout << "Trạng thái: Đã thanh toán\n";
                 cout << "===================\n";
 
-                // Cap nhat ban ve trong
                 b.trangThai = 0;
-                cout << "Trạng thái của bàn " << soBan << " đã được cập nhật.\n";
+                cout << "Đã cập nhật trạng thái bàn.\n";
             } else {
                 cout << "Hủy thanh toán.\n";
             }
             return;
         }
     }
-    cout << "Bàn không tồn tại hoặc đang TRỐNG!\n";
+    cout << "Bàn không tồn tại hoặc đang trống!\n";
 }
 
-// ===== MAIN =====
-int main() {
+// ===== XỬ LÝ LỰA CHỌN =====
+void xuLyLuaChon(int luaChon, vector<Ban>& dsBan, const string& tenFile) {
+    int soBan;
+    switch (luaChon) {
+        case 1:
+            cout << "Nhập số bàn cần thanh toán: ";
+            cin >> soBan;
+            xuLyHoaDon(dsBan, soBan);
+            ghiSoDoBan(tenFile, dsBan);
+            break;
+        case 0:
+            cout << "Thoát chương trình.\n";
+            break;
+        default:
+            cout << "Lựa chọn không hợp lệ!\n";
+    }
+}
+
+// ===== CHƯƠNG TRÌNH CHÍNH =====
+void chayChuongTrinh() {
     string tenFile = "SoDoBan.txt";
     vector<Ban> dsBan = docSoDoBan(tenFile);
-
-    int luaChon, soBan;
+    int luaChon;
 
     do {
         hienThiBan(dsBan);
-
-        cout << "\n===== MENU =====\n";
-        cout << "1. Xử lý hóa đơn\n";
-        cout << "0. Thoát\n";
-        cout << "Lựa chọn: ";
+        hienThiMenu();
         cin >> luaChon;
 
-        if (luaChon == 1) {
-            cout << "Nhập số bàn cần thanh toán: ";
-            cin >> soBan;
-
-            xuLyHoaDon(dsBan, soBan);
-            ghiSoDoBan(tenFile, dsBan); // cap nhat tu dong
-        }
+        xuLyLuaChon(luaChon, dsBan, tenFile);
 
     } while (luaChon != 0);
-
-    return 0;
 }
