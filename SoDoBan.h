@@ -52,10 +52,10 @@ void hienThiBan(const vector<Ban>& dsBan) {
 }
 
 void hienThiMenu() {
-    cout << "\n===== MENU =====\n";
+    cout << "\n===== OPTIONS =====\n";
     cout << "1. Xử lý hóa đơn\n";
     cout << "0. Thoát\n";
-    cout << "Lựa chọn: ";
+    cout << "Lựa chọn của bạn: ";
 }
 
 // ===== XỬ LÝ HÓA ĐƠN =====
@@ -115,20 +115,4 @@ void xuLyLuaChon(int luaChon, vector<Ban>& dsBan, const string& tenFile) {
         default:
             cout << "Lựa chọn không hợp lệ!\n";
     }
-}
-
-// ===== CHƯƠNG TRÌNH CHÍNH =====
-void chayChuongTrinh() {
-    string tenFile = "SoDoBan.txt";
-    vector<Ban> dsBan = docSoDoBan(tenFile);
-    int luaChon;
-
-    do {
-        hienThiBan(dsBan);
-        hienThiMenu();
-        cin >> luaChon;
-
-        xuLyLuaChon(luaChon, dsBan, tenFile);
-
-    } while (luaChon != 0);
 }
