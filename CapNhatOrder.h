@@ -2,106 +2,120 @@
 #define CAPNHATORDER_H
 
 #include <iostream>
-#include <vector>
 #include <string>
 #include <fstream>
 #include <format>
 #include <sstream>
 
-using namespace std;
+using std::cout, std::cin, std::endl, std::string;
+using std::ifstream, std::ofstream, std::ios, std::istringstream, std::getline;
+using std::format;
 
-// Thứ tự của file text lưu trữ order.txt nên là Mã|Bàn|Đồ uống|Size|Đường|Đá|Topping|Đồ ăn nhẹ|Ghi chú
+const int MAX_ORDER = 100; // Giới hạn số lượng order trong mảng tĩnh
 
 // --- CẤU TRÚC DỮ LIỆU ORDER ---
 struct Order {
-    string maHD;
-    string ban;
-    string doUong;
-    string size;
-    string duong;
-    string da;
-    string topping;
-    string doAnNhe;
-    string ghiChu;
+    string maHD, ban, doUong, size, duong, da, topping, doAnNhe, ghiChu;
 };
 
-// --- HÀM HỖ TRỢ ---
-// Tách chuỗi dữ liệu từ file .txt
-vector<string> splitOrder(string s) {
-    vector<string> res;
-    stringstream ss(s);
-    string item;
-    while (getline(ss, item, '|')) res.push_back(item);
-    return res;
+// --- HÀM HỖ TRỢ ĐỌC/GHI ---
+
+// Tách dữ liệu từ 1 dòng file vào struct Order
+Order docDongOrder(string line) {
+    istringstream ss(line);
+    Order o;
+    getline(ss, o.maHD, '|');
+    getline(ss, o.ban, '|');
+    getline(ss, o.doUong, '|');
+    getline(ss, o.size, '|');
+    getline(ss, o.duong, '|');
+    getline(ss, o.da, '|');
+    getline(ss, o.topping, '|');
+    getline(ss, o.doAnNhe, '|');
+    getline(ss, o.ghiChu);
+    return o;
 }
 
-// --- CHỨC NĂNG CHÍNH: CẬP NHẬT ORDER CŨ ---
-void capNhatOrder() {
-    string maTim;
-    cout << "\n[?] Nhập Mã hóa đơn cần cập nhật: ";
-    getline(cin, maTim);
+// Đọc toàn bộ file vào mảng tĩnh
+bool loadFileOrder(string tenFile, Order ds[], int& soLuong) {
+    ifstream fIn(tenFile, ios::in);
+    if (!fIn.is_open()) return false;
 
-    // 1. Đọc toàn bộ dữ liệu từ file của bạn khác làm (ví dụ: LichSuOrder.txt)
-    ifstream fIn("LichSuOrder.txt");
-    vector<Order> danhSach;
+    soLuong = 0;
     string line;
-    bool found = false;
-
-    while (getline(fIn, line)) {
-        if (line.empty()) continue;
-        vector<string> p = splitOrder(line);
-        // Giả sử định dạng: MaHD|Ban|DoUong|Size|Duong|Da|Topping|DoAnNhe|GhiChu
-        if (p.size() >= 9) {
-            danhSach.push_back({p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]});
-        }
+    while (getline(fIn, line) && soLuong < MAX_ORDER) {
+        if (line.length() < 5) continue; // Bỏ qua dòng trống
+        ds[soLuong] = docDongOrder(line);
+        soLuong++;
     }
     fIn.close();
+    return true;
+}
 
-    // 2. Tìm kiếm và sửa đổi
-    for (auto &o : danhSach) {
-        if (o.maHD == maTim) {
+// Ghi toàn bộ mảng tĩnh đè lại vào file
+void saveFileOrder(string tenFile, Order ds[], int soLuong) {
+    ofstream fOut(tenFile, ios::out);
+    for (int i = 0; i < soLuong; i++) {
+        fOut << format("{}|{}|{}|{}|{}|{}|{}|{}|{}\n", 
+                ds[i].maHD, ds[i].ban, ds[i].doUong, ds[i].size, 
+                ds[i].duong, ds[i].da, ds[i].topping, ds[i].doAnNhe, ds[i].ghiChu);
+    }
+    fOut.close();
+}
+
+// --- CHỨC NĂNG CHÍNH ---
+void capNhatOrder() {
+    Order danhSach[MAX_ORDER];
+    int soLuong = 0;
+    string fileLichSu = "LichSuOrder.txt";
+
+    if (!loadFileOrder(fileLichSu, danhSach, soLuong)) {
+        cout << "LỖI: Không thể mở file " << fileLichSu << " hoặc file trống!" << endl;
+        return;
+    }
+
+    cout << "\n[?] Nhập Mã hóa đơn cần cập nhật: ";
+    string maTim;
+    getline(cin, maTim);
+
+    bool found = false;
+    for (int i = 0; i < soLuong; i++) {
+        if (danhSach[i].maHD == maTim) {
             found = true;
             string input;
             cout << format("\n--- ĐANG CẬP NHẬT HÓA ĐƠN: {} ---\n", maTim);
             cout << "(Bấm Enter để giữ nguyên giá trị cũ)\n";
 
-            // Cập nhật các Option theo Mind Map
-            cout << format("- Bàn cần thêm/đổi (Cũ: {}): ", o.ban); 
-            getline(cin, input); if(!input.empty()) o.ban = input;
+            cout << format("- Bàn (Cũ: {}): ", danhSach[i].ban); 
+            getline(cin, input); if(!input.empty()) danhSach[i].ban = input;
 
-            cout << format("- Size (Cũ: {}): ", o.size); 
-            getline(cin, input); if(!input.empty()) o.size = input;
+            cout << format("- Size (Cũ: {}): ", danhSach[i].size); 
+            getline(cin, input); if(!input.empty()) danhSach[i].size = input;
 
-            cout << format("- % Đường (Cũ: {}): ", o.duong); 
-            getline(cin, input); if(!input.empty()) o.duong = input;
+            cout << format("- % Đường (Cũ: {}): ", danhSach[i].duong); 
+            getline(cin, input); if(!input.empty()) danhSach[i].duong = input;
 
-            cout << format("- % Đá (Cũ: {}): ", o.da); 
-            getline(cin, input); if(!input.empty()) o.da = input;
+            cout << format("- % Đá (Cũ: {}): ", danhSach[i].da); 
+            getline(cin, input); if(!input.empty()) danhSach[i].da = input;
 
-            cout << format("- Topping (Cũ: {}): ", o.topping); 
-            getline(cin, input); if(!input.empty()) o.topping = input;
+            cout << format("- Topping (Cũ: {}): ", danhSach[i].topping); 
+            getline(cin, input); if(!input.empty()) danhSach[i].topping = input;
 
-            cout << format("- Đồ ăn nhẹ (Cũ: {}): ", o.doAnNhe); 
-            getline(cin, input); if(!input.empty()) o.doAnNhe = input;
+            cout << format("- Đồ ăn nhẹ (Cũ: {}): ", danhSach[i].doAnNhe); 
+            getline(cin, input); if(!input.empty()) danhSach[i].doAnNhe = input;
 
-            cout << format("- Ghi chú (Cũ: {}): ", o.ghiChu); 
-            getline(cin, input); if(!input.empty()) o.ghiChu = input;
+            cout << format("- Ghi chú (Cũ: {}): ", danhSach[i].ghiChu); 
+            getline(cin, input); if(!input.empty()) danhSach[i].ghiChu = input;
 
-            break;
+            break; 
         }
     }
 
-    // 3. Ghi đè lại file nếu tìm thấy
     if (found) {
-        ofstream fOut("LichSuOrder.txt", ios::out);
-        for (const auto &o : danhSach) {
-            fOut << format("{}|{}|{}|{}|{}|{}|{}|{}|{}\n", 
-                    o.maHD, o.ban, o.doUong, o.size, o.duong, o.da, o.topping, o.doAnNhe, o.ghiChu);
-        }
-        fOut.close();
-        cout << "\n--> [THÀNH CÔNG] Đã cập nhật Order trên hệ thống!\n";
+        saveFileOrder(fileLichSu, danhSach, soLuong);
+        cout << "\n--> [THÀNH CÔNG] Đã cập nhật Order vào file!\n";
     } else {
-        cout << "\n--> [THẤT BẠI] Không tìm thấy Mã hóa đơn này.\n";
+        cout << "\n--> [THẤT BẠI] Không tìm thấy Mã hóa đơn: " << maTim << endl;
     }
 }
 
