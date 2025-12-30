@@ -3,7 +3,7 @@
 #include <format>
 #include <fstream>
 #include <sstream>
-#include <TaoOrder.h>
+#include "TaoOrder.h"
 
 using std::cout, std::cin, std::endl;
 using std::string, std::ofstream, std::ifstream, std::ios;
@@ -1284,7 +1284,9 @@ void quanLiDuLieuPhatSinh() {
 		if (luaChon == 0) break;
 
 		system("cls");
-		if (luaChon == 1);
+		if (luaChon == 1) {
+            taoOrderMoi(); // Gọi hàm từ file TaoOrder.h
+        }
 		else if (luaChon == 2);
 		else if (luaChon == 3);
 		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
