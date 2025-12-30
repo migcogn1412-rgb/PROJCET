@@ -1,210 +1,196 @@
 #ifndef TAOORDER_H
 #define TAOORDER_H
 
-#include "SoDoBan.h"
 #include "Menu.h"
 #include <ctime>
-#include <iomanip>
+#include <string>
 
-// --- CÁC HÀM TIỆN ÍCH CŨ ---
-void capNhatTrangThaiFile(int banCanUpdate, int trangThaiMoi) {
-    vector<pair<int, int>> data;
+// --- HÀM 1: CẬP NHẬT TRẠNG THÁI BÀN (0 -> 1) ---
+void capNhatTrangThaiBan(int ban, int trangThai) {
+    // Đọc toàn bộ file SoDoBan.txt lên vector
+    vector<string> lines;
     ifstream fIn("SoDoBan.txt");
-    int b, t;
-    char sep;
-    while(fIn >> b >> sep >> t) {
-        if (b == banCanUpdate) t = trangThaiMoi;
-        data.push_back({b, t});
+    string line;
+    while(getline(fIn, line)) {
+        lines.push_back(line);
     }
     fIn.close();
 
+    // Ghi đè lại với trạng thái mới
     ofstream fOut("SoDoBan.txt");
-    for(auto p : data) {
-        fOut << p.first << "|" << p.second << endl;
+    for(string s : lines) {
+        if(s.empty()) continue;
+        stringstream ss(s);
+        string sBan;
+        getline(ss, sBan, '|'); // Lấy số bàn ở đầu dòng
+        
+        // Nếu dòng này đúng là bàn đang chọn -> Ghi đè
+        if(stoi(sBan) == ban) {
+            fOut << ban << "|0|" << trangThai << endl; 
+        } else {
+            fOut << s << endl; // Các bàn khác giữ nguyên
+        }
     }
     fOut.close();
 }
 
-string layNgayGio() {
-    time_t now = time(0);
-    tm* ltm = localtime(&now);
-    return to_string(ltm->tm_mday) + "/" + to_string(1 + ltm->tm_mon) + "/" + to_string(1900 + ltm->tm_year) 
-           + " " + to_string(ltm->tm_hour) + ":" + to_string(ltm->tm_min);
-}
-
-void ghiHoaDonVaoFile(const HoaDon& hd) {
-    ofstream f("LichSuHoaDon.txt", ios::app);
-    f << "HEAD|" << hd.maHD << "|" << hd.ngay << "|" << hd.soBan << "|" << hd.tongTien << "|" << hd.ghiChu << endl;
-    for(auto m : hd.dsMon) {
-        f << "ITEM|" << hd.maHD << "|" << m.maMon << "|" << m.tenMon << "|" << m.soLuong << "|" << m.thanhTien << endl;
+// --- HÀM 2: HIỂN THỊ SƠ ĐỒ ĐỂ CHỌN ---
+void hienThiSoDoBan_Order() {
+    cout << "\n--- TRANG THAI BAN ---\n";
+    ifstream f("SoDoBan.txt");
+    string line;
+    while(getline(f, line)) {
+        if(line.length() < 3) continue;
+        stringstream ss(line);
+        string sBan, sDau, sTrangThai;
+        getline(ss, sBan, '|');
+        getline(ss, sDau, '|'); 
+        getline(ss, sTrangThai);
+        
+        int iBan = stoi(sBan);
+        int iTT = stoi(sTrangThai);
+        
+        // In ra màn hình (VD: [Ban 1: Trong] [Ban 2: CO KHACH]...)
+        cout << "[Ban " << iBan << ": " << (iTT == 1 ? "CO KHACH" : "Trong") << "]  ";
+        if(iBan % 5 == 0) cout << endl; // Xuống dòng cho đẹp
     }
+    cout << endl;
     f.close();
 }
 
-// --- HÀM MỚI: IN HÓA ĐƠN RA MÀN HÌNH ---
-void inHoaDonChiTiet(const HoaDon& hd) {
-    cout << "\n";
-    cout << "******************************************\n";
-    cout << "          HOA DON THANH TOAN              \n";
-    cout << "******************************************\n";
-    cout << " Ma HD:   " << hd.maHD << endl;
-    cout << " Ngay:    " << hd.ngay << endl;
-    cout << " Ban So:  " << hd.soBan << endl;
-    cout << "------------------------------------------\n";
-    cout << left << setw(20) << "TEN MON" << setw(5) << "SL" << setw(15) << "THANH TIEN" << endl;
-    cout << "------------------------------------------\n";
-
-    for (const auto& item : hd.dsMon) {
-        // In tên món
-        cout << left << setw(20) << item.tenMon 
-             << setw(5) << item.soLuong 
-             << right << setw(10) << item.thanhTien << " d" << endl;
-        
-        // In chi tiết nhỏ bên dưới nếu là đồ uống
-        if (item.loai == "DO_UONG") {
-            cout << left << setw(25) << "  Size: " + item.size << endl;
-            if (!item.dsTopping.empty()) {
-                cout << left << setw(25) << "  Topping: " + item.dsTopping << endl;
-            }
-        }
-        cout << "- - - - - - - - - - - - - - - - - - - - - \n";
+// --- HÀM 3: LƯU ORDER VÀO FILE RIÊNG CỦA BÀN ---
+// Mục đích: Để lưu lại món khách gọi. Sau này tính tiền sẽ đọc file này.
+void luuOrderCuaBan(int soBan, const vector<ChiTietOrder>& dsMon, string ghiChu, long tongTamTinh) {
+    // Tạo tên file tương ứng với số bàn. VD: Order_Ban_1.txt
+    string tenFile = "Order_Ban_" + to_string(soBan) + ".txt";
+    
+    ofstream f(tenFile); // Ghi đè (tạo mới phiếu order)
+    
+    // Ghi dòng đầu tiên là Tổng tiền tạm tính và Ghi chú
+    f << "INFO|" << tongTamTinh << "|" << ghiChu << endl;
+    
+    // Ghi danh sách món ăn
+    for(auto m : dsMon) {
+        // Format: Loai|Ma|Ten|Size|GiaSize|Topping|GiaTopping|SoLuong|ThanhTien
+        f << m.loai << "|" << m.maMon << "|" << m.tenMon << "|" 
+          << m.size << "|" << m.giaSize << "|" 
+          << m.dsTopping << "|" << m.giaTopping << "|" 
+          << m.soLuong << "|" << m.thanhTien << endl;
     }
-
-    cout << "------------------------------------------\n";
-    cout << right << setw(25) << "TONG CONG: " << setw(10) << hd.tongTien << " d\n";
-    cout << right << setw(25) << "KHACH DUA: " << setw(10) << hd.tienKhachDua << " d\n";
-    cout << right << setw(25) << "TIEN THOI: " << setw(10) << hd.tienThoi << " d\n";
-    cout << "------------------------------------------\n";
-    cout << " Ghi chu: " << hd.ghiChu << endl;
-    cout << "******************************************\n";
-    cout << "      CAM ON QUY KHACH & HEN GAP LAI      \n";
-    cout << "******************************************\n";
+    f.close();
+    
+    cout << "\n--> [THANH CONG] Da luu order vao file: " << tenFile << endl;
+    cout << "--> Chuyen xuong bep/quay pha che...\n";
 }
 
-// --- LOGIC CHÍNH ---
+// --- HÀM CHÍNH: TẠO ORDER (CHỈ GỌI MÓN) ---
 void taoOrderMoi() {
-    docSoDoBan(); 
-    vector<Mon> menuDoUong = loadMenu("DoUong.txt");
-    vector<Mon> menuDoAn = loadMenu("DoAn.txt");
-    vector<Topping> menuTopping = loadTopping("Topping.txt");
+    // 1. Load Menu từ các file txt
+    vector<MonUong> listUong = loadMenuDoUong();
+    vector<MonAn> listAn = loadMenuDoAn();
+    vector<MonTopping> listTopping = loadMenuTopping();
+    vector<ConfigSize> listSize = loadCauHinhSize();
 
-    hienThiSoDo(); 
+    // 2. Chọn Bàn
+    hienThiSoDoBan_Order();
     int soBan;
-    cout << ">> Chon so ban de order (0 thoat): ";
+    cout << ">> Chon so ban de goi mon (0 thoat): ";
     cin >> soBan;
     if (soBan == 0) return;
-    if (soBan < 1 || soBan > 25) { cout << "Ban khong ton tai!\n"; return; }
-    
-    int idx = soBan - 1;
-    if (qc.ban[idx/SIZE][idx%SIZE] == 1) {
-        cout << "(!) Ban nay dang co khach.\n";
-        return;
-    }
 
-    HoaDon hd;
-    hd.soBan = soBan;
-    hd.ngay = layNgayGio();
-    hd.maHD = "HD" + to_string(time(0)); 
-    hd.tongTien = 0;
-
+    // Biến lưu danh sách món vừa gọi
+    vector<ChiTietOrder> dsMonOrder;
+    long tongTamTinh = 0;
     string maChon;
 
-    // --- LOOP ĐỒ UỐNG ---
+    cout << "\n=== BAT DAU GOI MON CHO BAN " << soBan << " ===\n";
+
+    // --- PHẦN A: GỌI ĐỒ UỐNG ---
     while(true) {
-        hienThiMenu(menuDoUong, "MENU DO UONG");
-        cout << "Nhap MA mon (VD: CP01), nhap '0' sang Do An: ";
+        hienThi_MenuUong(listUong); // Hàm bên Menu.h
+        cout << "Nhap MA Do Uong (Nhap '0' de chuyen sang Do An): ";
         cin >> maChon;
         if(maChon == "0") break;
 
-        Mon m = timMonTheoMa(maChon, menuDoUong);
-        if(m.maMon == "") { cout << "Ma khong hop le!\n"; continue; }
+        MonUong m = timMonUong(maChon, listUong);
+        if(m.ma == "") { cout << "(!) Ma khong hop le!\n"; continue; }
 
         ChiTietOrder ct;
-        ct.maMon = m.maMon; ct.tenMon = m.tenMon; ct.loai = "DO_UONG";
-        ct.giaTopping = 0;
+        ct.maMon = m.ma; ct.tenMon = m.ten; ct.loai = "DO_UONG";
         
-        cout << "   -> Size (S: +0d, M: +3000d, L: +6000d): "; cin >> ct.size;
-        cout << "   -> % Duong: "; cin >> ct.duong;
-        cout << "   -> % Da: "; cin >> ct.da;
-        
-        ct.dsTopping = "";
-        string maTP;
-        hienThiTopping(menuTopping);
+        // A1. Chọn Size
+        hienThi_Size(listSize);
+        cout << "   -> Chon Size: "; cin >> ct.size;
+        ConfigSize sz = timSize(ct.size, listSize);
+        if(sz.size == "") { ct.giaSize = 0; } else { ct.giaSize = sz.giaThem; }
+
+        // A2. Chọn Topping
+        hienThi_Topping(listTopping);
+        ct.dsTopping = ""; ct.giaTopping = 0;
         cin.ignore();
         while(true) {
-            cout << "   -> Nhap Ma Topping (Enter de dung): ";
-            getline(cin, maTP);
+            cout << "   -> Nhap MA Topping (Enter de dung): ";
+            string maTP; getline(cin, maTP);
             if(maTP == "") break;
-            
-            Topping tp = timToppingTheoMa(maTP, menuTopping);
-            if(tp.maTopping != "") {
-                ct.dsTopping += tp.tenTopping + ", ";
+            MonTopping tp = timTopping(maTP, listTopping);
+            if(tp.ma != "") {
+                ct.dsTopping += tp.ten + ", ";
                 ct.giaTopping += tp.gia;
             }
         }
 
+        // A3. Số lượng
         cout << "   -> So luong: "; cin >> ct.soLuong;
-        long giaSize = (ct.size == "L" || ct.size == "l") ? 6000 : (ct.size == "M" || ct.size == "m" ? 3000 : 0);
-        ct.thanhTien = (m.gia + giaSize + ct.giaTopping) * ct.soLuong;
         
-        hd.dsMon.push_back(ct);
-        hd.tongTien += ct.thanhTien;
-        cout << "   => DA THEM (Tam tinh: " << hd.tongTien << "d)\n";
+        // Tính thành tiền món này
+        ct.thanhTien = (m.gia + ct.giaSize + ct.giaTopping) * ct.soLuong;
+        dsMonOrder.push_back(ct);
+        tongTamTinh += ct.thanhTien;
+        
+        cout << "   => Da them: " << ct.tenMon << " (Tam tinh: " << tongTamTinh << "d)\n";
     }
 
-    // --- LOOP ĐỒ ĂN ---
+    // --- PHẦN B: GỌI ĐỒ ĂN ---
     while(true) {
-        hienThiMenu(menuDoAn, "MENU DO AN VAT");
-        cout << "Nhap MA mon (VD: BN01), nhap '0' de ket thuc: ";
+        hienThi_MenuAn(listAn);
+        cout << "Nhap MA Do An (Nhap '0' de ket thuc goi mon): ";
         cin >> maChon;
         if(maChon == "0") break;
 
-        Mon m = timMonTheoMa(maChon, menuDoAn);
-        if(m.maMon == "") { cout << "Ma khong hop le!\n"; continue; }
+        MonAn m = timMonAn(maChon, listAn);
+        if(m.ma == "") { cout << "(!) Ma khong hop le!\n"; continue; }
 
         ChiTietOrder ct;
-        ct.maMon = m.maMon; ct.tenMon = m.tenMon; ct.loai = "DO_AN";
-        ct.size = ""; ct.duong = 0; ct.da = 0; ct.dsTopping = ""; ct.giaTopping = 0;
+        ct.maMon = m.ma; ct.tenMon = m.ten; ct.loai = "DO_AN";
+        ct.size = ""; ct.giaSize = 0; ct.dsTopping = ""; ct.giaTopping = 0;
 
         cout << "   -> So luong: "; cin >> ct.soLuong;
+        
         ct.thanhTien = m.gia * ct.soLuong;
-
-        hd.dsMon.push_back(ct);
-        hd.tongTien += ct.thanhTien;
-        cout << "   => DA THEM (Tam tinh: " << hd.tongTien << "d)\n";
+        dsMonOrder.push_back(ct);
+        tongTamTinh += ct.thanhTien;
+        
+        cout << "   => Da them: " << ct.tenMon << " (Tam tinh: " << tongTamTinh << "d)\n";
     }
 
+    // --- PHẦN C: GHI CHÚ & KẾT THÚC ---
     cin.ignore();
-    cout << ">> Ghi chu: ";
-    getline(cin, hd.ghiChu);
+    string ghiChu;
+    cout << ">> Ghi chu cho bep/pha che: "; 
+    getline(cin, ghiChu);
 
-    // --- THANH TOÁN (MỚI) ---
-    cout << "\n========== THANH TOAN ==========\n";
-    cout << " TONG TIEN CAN TRA: " << hd.tongTien << " VND\n";
-    
-    if (hd.tongTien > 0) {
-        do {
-            cout << " Nhap so tien khach dua: ";
-            cin >> hd.tienKhachDua;
-            if (hd.tienKhachDua < hd.tongTien) {
-                cout << " (!) Tien khach dua thieu " << (hd.tongTien - hd.tienKhachDua) << "d. Vui long nhap lai.\n";
-            }
-        } while (hd.tienKhachDua < hd.tongTien);
-
-        hd.tienThoi = hd.tienKhachDua - hd.tongTien;
-        cout << " -> Tien thoi lai: " << hd.tienThoi << " VND\n";
+    // Xử lý lưu dữ liệu
+    if (!dsMonOrder.empty()) {
+        // 1. Cập nhật trạng thái bàn thành Có Khách
+        capNhatTrangThaiBan(soBan, 1);
+        
+        // 2. Lưu món ăn vào file riêng của bàn đó
+        luuOrderCuaBan(soBan, dsMonOrder, ghiChu, tongTamTinh);
+        
+        cout << "\n=== HOAN TAT DAT MON BAN " << soBan << " ===\n";
     } else {
-        hd.tienKhachDua = 0;
-        hd.tienThoi = 0;
+        cout << "\n(!) Chua chon mon nao. Huy Order.\n";
     }
-
-    // Lưu và In hóa đơn
-    capNhatTrangThaiFile(soBan, 1);
-    docSoDoBan();
-    ghiHoaDonVaoFile(hd);
-    
-    // Gọi hàm in hóa đơn vừa viết
-    inHoaDonChiTiet(hd);
 }
 
 #endif
