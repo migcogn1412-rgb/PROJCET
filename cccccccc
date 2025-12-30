@@ -1,0 +1,2249 @@
+#include <iostream>
+#include <string>
+#include <format>
+#include <fstream>
+#include <sstream>
+#include <ctime>
+
+using std::cout, std::cin, std::endl, std::to_string;
+using std::string, std::ofstream, std::ifstream, std::ios;
+using std::format, std::istringstream, std::getline, std::stoi;
+
+const int TOI_DA = 100;
+
+// =========================================================
+// KHAI BÁO STRUCT
+// =========================================================
+struct DoUong {
+	string ten, loai, ma;
+	int giaGoc = 0;
+};
+
+struct DoAn {
+	string ten, loai, ma;
+	int giaGoc = 0;
+};
+
+struct Topping {
+	string ten, ma;
+	int giaGoc = 0;
+};
+
+struct CauHinh {
+	string size;
+	int giaCongThem = 0;
+};
+
+struct Ban {
+	int soBan = 0;
+	int trangThai = 0;
+};
+
+struct ChiTietMon {
+	string maMon, tenMon;
+	int giaGoc = 0;
+	string size = "S"; int giaSize = 0;
+	string topping = "", maTopping = ""; int giaTopping = 0;
+	int duong = 100, da = 100;
+	int soLuong = 0;
+	int thanhTien = 0;
+};
+
+struct HoaDon {
+	string maHD, ngay;
+	int soBan = 0;
+	ChiTietMon dsMon[TOI_DA];
+	int soMon = 0;
+	int tongTien = 0;
+	string ghiChu = "";
+};
+
+struct NguyenLieu {
+	string ma, ten, donVi;
+	int soLuong = 0;
+	int giaNhap = 0;
+};
+
+struct PhieuNhap {
+	string maPhieu, ngay, nguoiNhap;
+	NguyenLieu dsNL[TOI_DA];
+	int soNL = 0;
+	int tongTien = 0;
+};
+
+// =========================================================
+// HÀM TIỆN ÍCH CHUNG
+// =========================================================
+void veDuong(int doDai) {
+	cout << string(doDai, '-') << endl;
+}
+
+void veTieuDe(string tieuDe) {
+	cout << endl;
+	veDuong(60);
+	cout << format("|-{:^56}-|", tieuDe) << endl;
+	veDuong(60);
+	cout << endl;
+}
+
+void dungManHinh() {
+	cout << endl << "--> Nhấn [ENTER] để quay lại...";
+	string rac;
+	getline(cin, rac);
+}
+
+bool xacNhan() {
+	string xacNhan;
+	cout << " [*] XÁC NHẬN (Y/N): ";
+	getline(cin, xacNhan);
+	if (xacNhan == "N" || xacNhan == "n") return false;
+	if (xacNhan == "Y" || xacNhan == "y") return true;
+}
+
+string tachData(string str, int index) {
+	istringstream ss(str); string segment; int i = 0;
+	while (getline(ss, segment, '|')) {
+		if (i == index) return segment;
+		i++;
+	}
+	return "";
+}
+
+// =========================================================
+// QUẢN LÍ CƠ SỞ DỮ LIỆU
+// =========================================================
+
+// =========================================================
+// I. QUẢN LÝ ĐỒ UỐNG
+// =========================================================
+
+//ĐỌC THÔNG TIN ĐỒ UỐNG TỪ 1 DÒNG
+DoUong docDoUong(string thongTin) {
+	istringstream phanTach(thongTin);
+	DoUong d;
+	string boNhoDem;
+	getline(phanTach, d.ten, '|');
+	getline(phanTach, boNhoDem, '|'); d.giaGoc = stoi(boNhoDem);
+	getline(phanTach, d.loai, '|');
+	getline(phanTach, d.ma);
+	return d;
+}
+
+//ĐỌC THÔNG TIN TỪ FILE ĐỒ UỐNG
+bool docFileDoUong(string tenFile, DoUong danhSach[], int& thuTu) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	thuTu = 0;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() > 5) {
+			danhSach[thuTu] = docDoUong(boNhoDem);
+			if (danhSach[thuTu].ma != "") thuTu++;
+		}
+	}
+	docFile.close();
+	return true;
+}
+
+//GHI THÔNG TIN VÀO FILE ĐỒ UỐNG
+bool ghiFileDoUong(string tenFile, DoUong danhSach[], int& thuTu) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	for (int i = 0; i < thuTu; i++) {
+		ghiFile << danhSach[i].ten << "|" << danhSach[i].giaGoc << "|"
+				<< danhSach[i].loai << "|" << danhSach[i].ma << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+
+//XÓA 1 DÒNG THÔNG TIN ĐỒ UỐNG
+void xoaDongDoUong(DoUong danhSach[], int& thuTu, int i) {
+	for (int j = i; j < thuTu - 1; j++) {
+		danhSach[j] = danhSach[j + 1];
+	}
+	thuTu--;
+}
+
+//CẬP NHẬT THÔNG TIN ĐỒ UỐNG
+void capNhatDoUong(DoUong& mon) {
+	string boNhoDem;
+
+	cout << format("Mã mới (cũ: {}): ", mon.ma);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ma = boNhoDem;
+
+	cout << format("Tên mới (cũ: {}): ", mon.ten);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ten = boNhoDem;
+
+	cout << format("Giá mới (cũ: {}): ", mon.giaGoc);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.giaGoc = stoi(boNhoDem);
+
+	cout << format("Loại mới (cũ: {}): ", mon.loai);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.loai = boNhoDem;
+}
+
+//IN MENU ĐỒ UỐNG
+void inMenuDoUong(DoUong danhSach[], int& thuTu) {
+	veDuong(73);
+	cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", "MÃ", "TÊN ĐỒ UỐNG", "GIÁ", "LOẠI") << endl;
+	veDuong(73);
+	for (int i = 0; i < thuTu; i++) {
+		cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc, danhSach[i].loai) << endl;
+	}
+	veDuong(73);
+	cout << endl;
+}
+
+//NHẬP ĐỒ UỐNG MỚI
+void nhapDoUongMoi(DoUong& moi) {
+	cout << format("{:<25}: ", "Nhập mã đồ uống");
+	getline(cin, moi.ma);
+
+	cout << format("{:<25}: ", "Nhập tên đồ uống");
+	getline(cin, moi.ten);
+
+	cout << format("{:<25}: ", "Nhập giá gốc");
+	string boNhoDem;
+	getline(cin, boNhoDem); moi.giaGoc = stoi(boNhoDem);
+
+	cout << format("{:<25}: ", "Nhập loại đồ uống");
+	getline(cin, moi.loai);
+}
+
+//THÊM THÔNG TIN ĐỒ UỐNG
+void themDoUong(string fileDoUong) {
+	veTieuDe("THÊM ĐỒ UỐNG MỚI");
+
+	DoUong danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoUong(fileDoUong, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ UỐNG HIỆN TẠI *" << endl;
+		inMenuDoUong(danhSach, thuTu);
+	}
+
+	ofstream themDoUong(fileDoUong, ios::app);
+	if (!themDoUong.is_open()) {
+		cout << "LỖI: Không thể mở file '" << fileDoUong << "'!" << endl;
+		return;
+	}
+	DoUong moi;
+	nhapDoUongMoi(moi);
+	if (xacNhan()) {
+		themDoUong << moi.ten << "|" << moi.giaGoc << "|" << moi.loai << "|" << moi.ma << endl;
+		cout << "\n--> [THÀNH CÔNG] Đã thêm đồ uống vào hệ thống! *_*" << endl;
+	}
+	else {
+		cout << "\n--> [THẤT BẠI] Đã hủy thao tác thêm đồ uống mới! *_*" << endl;
+	}
+	themDoUong.close();
+}
+
+//XÓA ĐỒ UỐNG
+void xoaDoUong(string fileDoUong) {
+	veTieuDe("XÓA ĐỒ UỐNG");
+
+	DoUong danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoUong(fileDoUong, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ UỐNG HIỆN TẠI *" << endl;
+		inMenuDoUong(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* đồ uống muốn xóa: ";
+	string maXoa;
+	getline(cin, maXoa);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maXoa) {
+			timThay = true;
+			cout << format("\nĐang xóa món: [{}] - {}\n", danhSach[i].ma, danhSach[i].ten) << endl;
+			if (xacNhan()) {
+				xoaDongDoUong(danhSach, thuTu, i);
+				ghiFileDoUong(fileDoUong, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã xóa đồ uống! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác xóa đồ uống! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã đồ uống: " << maXoa << endl;
+	}
+}
+
+//SỬA ĐỒ UỐNG
+void suaDoUong(string fileDoUong) {
+	veTieuDe("CHỈNH SỬA THÔNG TIN");
+
+	DoUong danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoUong(fileDoUong, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ UỐNG HIỆN TẠI *" << endl;
+		inMenuDoUong(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* đồ uống muốn sửa: ";
+	string maSua;
+	getline(cin, maSua);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maSua) {
+			timThay = true;
+			cout << format("\nĐang sửa món: {}\n", danhSach[i].ten);
+			cout << "(Bấm Enter nếu muốn giữ nguyên giá trị cũ)\n\n";
+			if (xacNhan()) {
+				capNhatDoUong(danhSach[i]);
+				ghiFileDoUong(fileDoUong, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã cập nhật thông tin! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác cập nhật thông tin! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã đồ uống!" << endl;
+	}
+}
+
+//TÌM KIẾM ĐỒ UỐNG
+void timKiemDoUong(string fileDoUong) {
+	veTieuDe("TÌM KIẾM ĐỒ UỐNG");
+
+	DoUong danhSach[TOI_DA];
+	int thuTu = 0;
+	if (!docFileDoUong(fileDoUong, danhSach, thuTu)) return;
+
+	cout << "Nhập *MÃ* hoặc *TỪ KHÓA*: ";
+	string doTimKiem;
+	getline(cin, doTimKiem);
+
+	cout << endl;
+	veDuong(73);
+	cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", "MÃ", "TÊN ĐỒ UỐNG", "GIÁ", "LOẠI") << endl;
+	veDuong(73);
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma.find(doTimKiem) != string::npos || danhSach[i].ten.find(doTimKiem) != string::npos) {
+			cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc, danhSach[i].loai) << endl;
+			timThay = true;
+		}
+	}
+	veDuong(73);
+	if (!timThay) {
+		cout << "\n--> Không tìm thấy kết quả nào phù hợp với: " << doTimKiem << endl;
+	}
+}
+
+//HÀM QUẢN LÍ CHỨC NĂNG LIÊN QUAN ĐẾN ĐỒ UỐNG
+void quanLiDoUong() {
+	while (true) {
+		system("cls");
+		veTieuDe("[I] QUẢN LÍ ĐỒ UỐNG");
+		cout << format("{:<60}", "[1] Thêm") << endl;
+		cout << format("{:<60}", "[2] Xóa") << endl;
+		cout << format("{:<60}", "[3] Chỉnh sửa") << endl;
+		cout << format("{:<60}", "[4] Tìm kiếm") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) themDoUong("DoUong.txt");
+		else if (luaChon == 2) xoaDoUong("DoUong.txt");
+		else if (luaChon == 3) suaDoUong("DoUong.txt");
+		else if (luaChon == 4) timKiemDoUong("DoUong.txt");
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+// =========================================================
+// II. QUẢN LÝ ĐỒ ĂN
+// =========================================================
+//ĐỌC THÔNG TIN ĐỒ ĂN TỪ 1 DÒNG
+DoAn docDoAn(string thongTin) {
+	istringstream phanTach(thongTin);
+	DoAn d;
+	string boNhoDem;
+	getline(phanTach, d.ten, '|');
+	getline(phanTach, boNhoDem, '|'); d.giaGoc = stoi(boNhoDem);
+	getline(phanTach, d.loai, '|');
+	getline(phanTach, d.ma);
+	return d;
+}
+
+//ĐỌC THÔNG TIN TỪ FILE ĐỒ ĂN
+bool docFileDoAn(string tenFile, DoAn danhSach[], int& thuTu) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	thuTu = 0;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() > 5) {
+			danhSach[thuTu] = docDoAn(boNhoDem);
+			if (danhSach[thuTu].ma != "") thuTu++;
+		}
+	}
+	docFile.close();
+	return true;
+}
+
+//GHI THÔNG TIN VÀO FILE ĐỒ ĂN
+bool ghiFileDoAn(string tenFile, DoAn danhSach[], int& thuTu) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	for (int i = 0; i < thuTu; i++) {
+		ghiFile << danhSach[i].ten << "|" << danhSach[i].giaGoc << "|"
+				<< danhSach[i].loai << "|" << danhSach[i].ma << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+
+//XÓA 1 DÒNG ĐỒ ĂN
+void xoaDongDoAn(DoAn danhSach[], int& thuTu, int i) {
+	for (int j = i; j < thuTu - 1; j++) {
+		danhSach[j] = danhSach[j + 1];
+	}
+	thuTu--;
+}
+
+//CẬP NHẬT THÔNG TIN ĐỒ ĂN
+void capNhatDoAn(DoAn& mon) {
+	string boNhoDem;
+
+	cout << format("Mã mới (cũ: {}): ", mon.ma);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ma = boNhoDem;
+
+	cout << format("Tên mới (cũ: {}): ", mon.ten);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ten = boNhoDem;
+
+	cout << format("Giá mới (cũ: {}): ", mon.giaGoc);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.giaGoc = stoi(boNhoDem);
+
+	cout << format("Loại mới (cũ: {}): ", mon.loai);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.loai = boNhoDem;
+}
+
+//IN MENU ĐỒ ĂN
+void inMenuDoAn(DoAn danhSach[], int& thuTu) {
+	veDuong(73);
+	cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", "MÃ", "TÊN ĐỒ ĂN", "GIÁ", "LOẠI") << endl;
+	veDuong(73);
+	for (int i = 0; i < thuTu; i++) {
+		cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc, danhSach[i].loai) << endl;
+	}
+	veDuong(73);
+	cout << endl;
+}
+
+//NHẬP ĐỒ ĂN MỚI
+void nhapDoAnMoi(DoAn& moi) {
+	cout << format("{:<25}: ", "Nhập mã đồ ăn");
+	getline(cin, moi.ma);
+
+	cout << format("{:<25}: ", "Nhập tên món");
+	getline(cin, moi.ten);
+
+	cout << format("{:<25}: ", "Nhập giá gốc");
+	string boNhoDem;
+	getline(cin, boNhoDem); moi.giaGoc = stoi(boNhoDem);
+
+	cout << format("{:<25}: ", "Nhập loại đồ ăn");
+	getline(cin, moi.loai);
+}
+
+//THÊM ĐỒ ĂN
+void themDoAn(string fileDoAn) {
+	veTieuDe("THÊM ĐỒ ĂN MỚI");
+
+	DoAn danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoAn(fileDoAn, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ ĂN HIỆN TẠI *" << endl;
+		inMenuDoAn(danhSach, thuTu);
+	}
+
+	ofstream themDoAn(fileDoAn, ios::app);
+	if (!themDoAn.is_open()) {
+		cout << "LỖI: Không thể mở file '" << fileDoAn << "'!" << endl;
+		return;
+	}
+	DoAn moi;
+	nhapDoAnMoi(moi);
+	if (xacNhan()) {
+		themDoAn << moi.ten << "|" << moi.giaGoc << "|" << moi.loai << "|" << moi.ma << endl;
+		cout << "\n--> [THÀNH CÔNG] Đã thêm đồ ăn vào hệ thống! *_*" << endl;
+	}
+	else {
+		cout << "\n--> [THẤT BẠI] Đã hủy thao tác thêm đồ ăn mới! *_*" << endl;
+	}
+	themDoAn.close();
+}
+
+//XÓA ĐỒ ĂN
+void xoaDoAn(string fileDoAn) {
+	veTieuDe("XÓA ĐỒ ĂN");
+
+	DoAn danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoAn(fileDoAn, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ ĂN HIỆN TẠI *" << endl;
+		inMenuDoAn(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* đồ ăn muốn xóa: ";
+	string maXoa;
+	getline(cin, maXoa);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maXoa) {
+			timThay = true;
+			cout << format("\nĐang xóa món: [{}] - {}\n", danhSach[i].ma, danhSach[i].ten);
+			if (xacNhan()) {
+				xoaDongDoAn(danhSach, thuTu, i);
+				ghiFileDoAn(fileDoAn, danhSach, thuTu);
+				cout << "--> [THÀNH CÔNG] Đã xóa đồ ăn! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác xóa đồ ăn! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã đồ ăn: " << maXoa << endl;
+	}
+}
+
+//SỬA ĐỒ ĂN
+void suaDoAn(string fileDoAn) {
+	veTieuDe("CHỈNH SỬA THÔNG TIN");
+
+	DoAn danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileDoAn(fileDoAn, danhSach, thuTu)) {
+		cout << "* MENU ĐỒ ĂN HIỆN TẠI *" << endl;
+		inMenuDoAn(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* đồ ăn muốn sửa: ";
+	string maSua;
+	getline(cin, maSua);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maSua) {
+			timThay = true;
+			cout << format("\nĐang sửa món: {}\n", danhSach[i].ten);
+			cout << "(Bấm Enter nếu muốn giữ nguyên giá trị cũ)\n\n";
+			if (xacNhan()) {
+				capNhatDoAn(danhSach[i]);
+				ghiFileDoAn(fileDoAn, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã cập nhật thông tin! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác cập nhật thông tin! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã đồ ăn!" << endl;
+	}
+}
+
+//TÌM KIẾM ĐỒ ĂN
+void timKiemDoAn(string fileDoAn) {
+	veTieuDe("TÌM KIẾM ĐỒ ĂN");
+
+	DoAn danhSach[TOI_DA];
+	int thuTu = 0;
+	if (!docFileDoAn(fileDoAn, danhSach, thuTu)) return;
+
+	cout << "Nhập *MÃ* hoặc *TỪ KHÓA*: ";
+	string doTimKiem;
+	getline(cin, doTimKiem);
+
+	cout << endl;
+	veDuong(73);
+	cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", "MÃ", "TÊN ĐỒ ĂN", "GIÁ", "LOẠI") << endl;
+	veDuong(73);
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma.find(doTimKiem) != string::npos || danhSach[i].ten.find(doTimKiem) != string::npos) {
+			cout << format("| {:<10} | {:<30} | {:<10} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc, danhSach[i].loai) << endl;
+			timThay = true;
+		}
+	}
+	veDuong(73);
+	if (!timThay) {
+		cout << "\n--> Không tìm thấy kết quả nào phù hợp với: " << doTimKiem << endl;
+	}
+}
+
+//HÀM QUẢN LÍ CHỨC NĂNG LIÊN QUAN ĐẾN ĐỒ ĂN
+void quanLiDoAn() {
+	while (true) {
+		system("cls");
+		veTieuDe("[II] QUẢN LÍ ĐỒ ĂN");
+		cout << format("{:<60}", "[1] Thêm") << endl;
+		cout << format("{:<60}", "[2] Xóa") << endl;
+		cout << format("{:<60}", "[3] Chỉnh sửa") << endl;
+		cout << format("{:<60}", "[4] Tìm kiếm") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) themDoAn("DoAn.txt");
+		else if (luaChon == 2) xoaDoAn("DoAn.txt");
+		else if (luaChon == 3) suaDoAn("DoAn.txt");
+		else if (luaChon == 4) timKiemDoAn("DoAn.txt");
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+// =========================================================
+// III. QUẢN LÝ TOPPING
+// =========================================================
+//ĐỌC THÔNG TIN TOPPING TỪ 1 DÒNG
+Topping docTopping(string thongTin) {
+	istringstream phanTach(thongTin);
+	Topping t;
+	string boNhoDem;
+	getline(phanTach, t.ten, '|');
+	getline(phanTach, boNhoDem, '|'); t.giaGoc = stoi(boNhoDem);
+	getline(phanTach, t.ma);
+	return t;
+}
+
+//ĐỌC THÔNG TIN TỪ FILE TOPPING
+bool docFileTopping(string tenFile, Topping danhSach[], int& thuTu) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	thuTu = 0;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() > 5) {
+			danhSach[thuTu] = docTopping(boNhoDem);
+			if (danhSach[thuTu].ma != "") thuTu++;
+		}
+	}
+	docFile.close();
+	return true;
+}
+
+//GHI THÔNG TIN VÀO FILE TOPPING
+bool ghiFileTopping(string tenFile, Topping danhSach[], int& thuTu) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	for (int i = 0; i < thuTu; i++) {
+		ghiFile << danhSach[i].ten << "|"
+				<< danhSach[i].giaGoc << "|"
+				<< danhSach[i].ma << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+
+//XÓA 1 DÒNG TOPPING
+void xoaDongTopping(Topping danhSach[], int& thuTu, int i) {
+	for (int j = i; j < thuTu - 1; j++) {
+		danhSach[j] = danhSach[j + 1];
+	}
+	thuTu--;
+}
+
+//CẬP NHẬT THÔNG TIN TOPPING
+void capNhatTopping(Topping& mon) {
+	string boNhoDem;
+
+	cout << format("Mã mới (cũ: {}): ", mon.ma);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ma = boNhoDem;
+
+	cout << format("Tên mới (cũ: {}): ", mon.ten);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.ten = boNhoDem;
+
+	cout << format("Giá mới (cũ: {}): ", mon.giaGoc);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.giaGoc = stoi(boNhoDem);
+}
+
+//IN MENU TOPPING
+void inMenuTopping(Topping danhSach[], int& thuTu) {
+	veDuong(60);
+	cout << format("| {:<10} | {:<30} | {:<10} |", "MÃ", "TÊN ĐỒ UỐNG", "GIÁ") << endl;
+	veDuong(60);
+	for (int i = 0; i < thuTu; i++) {
+		cout << format("| {:<10} | {:<30} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc) << endl;
+	}
+	veDuong(60);
+	cout << endl;
+}
+
+//NHẬP TOPPING MỚI
+void nhapToppingMoi(Topping& moi) {
+	cout << format("{:<25}: ", "Nhập mã topping");
+	getline(cin, moi.ma);
+
+	cout << format("{:<25}: ", "Nhập tên món");
+	getline(cin, moi.ten);
+
+	cout << format("{:<25}: ", "Nhập giá gốc");
+	string boNhoDem;
+	getline(cin, boNhoDem); moi.giaGoc = stoi(boNhoDem);
+}
+
+//THÊM TOPPING
+void themTopping(string fileTopping) {
+	veTieuDe("THÊM TOPPING MỚI");
+
+	Topping danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileTopping(fileTopping, danhSach, thuTu)) {
+		cout << "* MENU TOPPING HIỆN TẠI *" << endl;
+		inMenuTopping(danhSach, thuTu);
+	}
+
+	ofstream themTopping(fileTopping, ios::app);
+	if (!themTopping.is_open()) {
+		cout << "LỖI: Không thể mở file '" << fileTopping << "'!" << endl;
+		return;
+	}
+	Topping moi;
+	nhapToppingMoi(moi);
+	if (xacNhan()) {
+		themTopping << moi.ten << "|" << moi.giaGoc << "|" << moi.ma << endl;
+		cout << "\n--> [THÀNH CÔNG] Đã thêm topping vào hệ thống! *_*" << endl;
+	}
+	else {
+		cout << "\n--> [THẤT BẠI] Đã hủy thao tác thêm topping mới! *_*" << endl;
+	}
+	themTopping.close();
+}
+
+//XÓA TOPPING
+void xoaTopping(string fileTopping) {
+	veTieuDe("XÓA TOPPING");
+
+	Topping danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileTopping(fileTopping, danhSach, thuTu)) {
+		cout << "* MENU TOPPING HIỆN TẠI *" << endl;
+		inMenuTopping(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* đồ topping muốn xóa: ";
+	string maXoa;
+	getline(cin, maXoa);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maXoa) {
+			timThay = true;
+			cout << format("\nĐang xóa món: [{}] - {}\n", danhSach[i].ma, danhSach[i].ten);
+			if (xacNhan()) {
+				xoaDongTopping(danhSach, thuTu, i);
+				ghiFileTopping(fileTopping, danhSach, thuTu);
+				cout << "--> [THÀNH CÔNG] Đã xóa topping! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác xóa topping! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã topping: " << maXoa << endl;
+	}
+}
+
+//SỬA TOPPING
+void suaTopping(string fileTopping) {
+	veTieuDe("CHỈNH SỬA THÔNG TIN");
+
+	Topping danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileTopping(fileTopping, danhSach, thuTu)) {
+		cout << "* MENU TOPPING HIỆN TẠI *" << endl;
+		inMenuTopping(danhSach, thuTu);
+	}
+
+	cout << "Nhập *MÃ* topping muốn sửa: ";
+	string maSua;
+	getline(cin, maSua);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma == maSua) {
+			timThay = true;
+			cout << format("\nĐang sửa món: {}\n", danhSach[i].ten);
+			cout << "(Bấm Enter nếu muốn giữ nguyên giá trị cũ)\n\n";
+			if (xacNhan()) {
+				capNhatTopping(danhSach[i]);
+				ghiFileTopping(fileTopping, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã cập nhật thông tin! *_*" << endl;
+				break;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác cập nhật thông tin! *_*" << endl;
+				break;
+			}
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy mã topping!" << endl;
+	}
+}
+
+//TÌM KIẾM TOPPING
+void timKiemTopping(string fileTopping) {
+	veTieuDe("TÌM KIẾM TOPPING");
+
+	Topping danhSach[TOI_DA];
+	int thuTu = 0;
+	if (!docFileTopping(fileTopping, danhSach, thuTu)) return;
+
+	cout << "Nhập *MÃ* hoặc *TỪ KHÓA*: ";
+	string doTimKiem;
+	getline(cin, doTimKiem);
+
+	cout << endl;
+	veDuong(60);
+	cout << format("| {:<10} | {:<30} | {:<10} |", "MÃ", "TÊN TOPPING", "GIÁ") << endl;
+	veDuong(60);
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].ma.find(doTimKiem) != string::npos || danhSach[i].ten.find(doTimKiem) != string::npos) {
+			cout << format("| {:<10} | {:<30} | {:<10} |", danhSach[i].ma, danhSach[i].ten, danhSach[i].giaGoc) << endl;
+			timThay = true;
+		}
+	}
+	veDuong(60);
+	if (!timThay) {
+		cout << "\n--> Không tìm thấy kết quả nào phù hợp với: " << doTimKiem << endl;
+	}
+}
+
+//HÀM QUẢN LÍ CHỨC NĂNG LIÊN QUAN ĐẾN TOPPING
+void quanLiTopping() {
+	while (true) {
+		system("cls");
+		veTieuDe("[III] QUẢN LÍ TOPPING");
+		cout << format("{:<60}", "[1] Thêm") << endl;
+		cout << format("{:<60}", "[2] Xóa") << endl;
+		cout << format("{:<60}", "[3] Chỉnh sửa") << endl;
+		cout << format("{:<60}", "[4] Tìm kiếm") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) themTopping("Topping.txt");
+		else if (luaChon == 2) xoaTopping("Topping.txt");
+		else if (luaChon == 3) suaTopping("Topping.txt");
+		else if (luaChon == 4) timKiemTopping("Topping.txt");
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+// =========================================================
+// IV. CẤU HÌNH ORDER
+// =========================================================
+//ĐỌC THÔNG TIN CẤU HÌNH TỪ 1 DÒNG
+CauHinh docCauHinh(string thongTin) {
+	istringstream phanTach(thongTin);
+	CauHinh c;
+	string boNhoDem;
+	getline(phanTach, c.size, '|');
+	getline(phanTach, boNhoDem); c.giaCongThem = stoi(boNhoDem);
+	return c;
+}
+
+//ĐỌC THÔNG TIN TỪ FILE CẤU HÌNH
+bool docFileCauHinh(string tenFile, CauHinh danhSach[], int& thuTu) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	thuTu = 0;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() > 5) {
+			danhSach[thuTu] = docCauHinh(boNhoDem);
+			if (danhSach[thuTu].giaCongThem != 0) thuTu++;
+		}
+	}
+	docFile.close();
+	return true;
+}
+
+//GHI THÔNG TIN VÀO FILE CẤU HÌNH
+bool ghiFileCauHinh(string tenFile, CauHinh danhSach[], int& thuTu) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	for (int i = 0; i < thuTu; i++) {
+		ghiFile << danhSach[i].size << "|"
+				<< danhSach[i].giaCongThem << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+
+//XÓA 1 DÒNG CẤU HÌNH
+void xoaDongCauHinh(CauHinh danhSach[], int& thuTu, int i) {
+	for (int j = i; j < thuTu - 1; j++) {
+		danhSach[j] = danhSach[j + 1];
+	}
+	thuTu--;
+}
+
+//CẬP NHẬT THÔNG TIN CẤU HÌNH
+void capNhatCauHinh(CauHinh& mon) {
+	string boNhoDem;
+
+	cout << format("Tên mới (cũ: {}): ", mon.size);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.size = boNhoDem;
+
+	cout << format("Giá mới (cũ: {}): ", mon.giaCongThem);
+	getline(cin, boNhoDem);
+	if (boNhoDem != "") mon.giaCongThem = stoi(boNhoDem);
+}
+
+//IN CẤU HÌNH
+void inCauHinh(CauHinh danhSach[], int& thuTu) {
+	veDuong(37);
+	cout << format("| {:<15} | {:<15} |", "SIZE", "GIÁ CỘNG THÊM") << endl;
+	veDuong(37);
+	for (int i = 0; i < thuTu; i++) {
+		cout << format("| {:<15} | {:<15} |", danhSach[i].size, danhSach[i].giaCongThem) << endl;
+	}
+	veDuong(37);
+	cout << endl;
+}
+
+//NHẬP CẤU HÌNH MỚI
+void nhapCauHinhMoi(CauHinh& moi) {
+	cout << format("{:<25}: ", "Nhập tên size");
+	getline(cin, moi.size);
+
+	cout << format("{:<25}: ", "Nhập giá cộng thêm");
+	string boNhoDem;
+	getline(cin, boNhoDem); moi.giaCongThem = stoi(boNhoDem);
+}
+
+//THÊM CẤU HÌNH
+void themSize(string fileCauHinh) {
+	veTieuDe("THÊM SIZE MỚI");
+
+	CauHinh danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileCauHinh(fileCauHinh, danhSach, thuTu)) {
+		cout << "* CẤU HÌNH HIỆN TẠI *" << endl;
+		inCauHinh(danhSach, thuTu);
+	}
+
+	ofstream themSize(fileCauHinh, ios::app);
+	if (!themSize.is_open()) {
+		cout << "LỖI: Không thể mở file '" << fileCauHinh << "'!" << endl;
+		return;
+	}
+	CauHinh moi;
+	nhapCauHinhMoi(moi);
+	if (xacNhan()) {
+		themSize << moi.size << "|" << moi.giaCongThem << endl;
+		cout << "\n--> [THÀNH CÔNG] Đã thêm size vào hệ thống! *_*" << endl;
+	}
+	else {
+		cout << "\n--> [THẤT BẠI] Đã hủy thao tác thêm size mới! *_*" << endl;
+	}
+	themSize.close();
+}
+
+//XÓA CẤU HÌNH
+void xoaSize(string fileCauHinh) {
+	veTieuDe("XÓA SIZE");
+
+	CauHinh danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileCauHinh(fileCauHinh, danhSach, thuTu)) {
+		cout << "* CẤU HÌNH HIỆN TẠI *" << endl;
+		inCauHinh(danhSach, thuTu);
+	}
+
+	cout << "Nhập size muốn xóa: ";
+	string sizeXoa;
+	getline(cin, sizeXoa);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].size == sizeXoa) {
+			cout << format("\nĐang xóa size: [{}]\n", danhSach[i].size);
+			timThay = true;
+			if (xacNhan()) {
+				xoaDongCauHinh(danhSach, thuTu, i);
+				ghiFileCauHinh(fileCauHinh, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã xóa size! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác xóa size! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy size: " << sizeXoa << endl;
+	}
+}
+
+//SỬA CẤU HÌNH
+void suaCauHinh(string fileCauHinh) {
+	veTieuDe("CHỈNH SỬA THÔNG TIN");
+
+	CauHinh danhSach[TOI_DA];
+	int thuTu = 0;
+	if (docFileCauHinh(fileCauHinh, danhSach, thuTu)) {
+		cout << "* CẤU HÌNH HIỆN TẠI *" << endl;
+		inCauHinh(danhSach, thuTu);
+	}
+
+	cout << "Nhập size muốn sửa: ";
+	string sizeSua;
+	getline(cin, sizeSua);
+
+	bool timThay = false;
+	for (int i = 0; i < thuTu; i++) {
+		if (danhSach[i].size == sizeSua) {
+			timThay = true;
+			cout << format("\nĐang sửa size: {}\n", danhSach[i].size);
+			cout << "(Bấm Enter nếu muốn giữ nguyên giá trị cũ)\n\n";
+			if (xacNhan()) {
+				capNhatCauHinh(danhSach[i]);
+				ghiFileCauHinh(fileCauHinh, danhSach, thuTu);
+				cout << "\n--> [THÀNH CÔNG] Đã cập nhật thông tin! *_*" << endl;
+			}
+			else {
+				cout << "\n--> [THẤT BẠI] Đã hủy thao tác cập nhật thông tin! *_*" << endl;
+			}
+			return;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> [CẢNH BÁO] Không tìm thấy size!" << endl;
+	}
+}
+
+//HÀM QUẢN LÍ CHỨC NĂNG LIÊN QUAN ĐẾN CẤU HÌNH
+void cauHinhOrder() {
+	while (true) {
+		system("cls");
+		veTieuDe("[IV] CẤU HÌNH ORDER");
+		cout << format("{:<60}", "[1] Thêm") << endl;
+		cout << format("{:<60}", "[2] Xóa") << endl;
+		cout << format("{:<60}", "[3] Chỉnh sửa") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) themSize("CauHinhOrder.txt");
+		else if (luaChon == 2) xoaSize("CauHinhOrder.txt");
+		else if (luaChon == 3) suaCauHinh("CauHinhOrder.txt");
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+void menuChiTiet() {
+	DoUong du[TOI_DA];
+	DoAn da[TOI_DA];
+	Topping t[TOI_DA];
+	CauHinh ch[TOI_DA];
+	int soLuongDU = 0, soLuongDA = 0, soLuongT = 0, soLuongCH = 0;
+
+	docFileDoUong("DoUong.txt", du, soLuongDU);
+	docFileDoAn("DoAn.txt", da, soLuongDA);
+	docFileTopping("Topping.txt", t, soLuongT);
+	docFileCauHinh("CauHinhOrder.txt", ch, soLuongCH);
+
+	veTieuDe("MENU TỔNG HỢP");
+	cout << "\n=== ĐỒ UỐNG ===\n";
+	if (soLuongDU == 0) cout << "Chưa có dữ liệu\n";
+	else inMenuDoUong(du, soLuongDU);
+
+	cout << "\n=== ĐỒ ĂN ===\n";
+	if (soLuongDA == 0) cout << "Chưa có dữ liệu\n";
+	else inMenuDoAn(da, soLuongDA);
+
+	cout << "\n=== TOPPING ===\n";
+	if (soLuongT == 0) cout << "Chưa có dữ liệu\n";
+	else inMenuTopping(t, soLuongT);
+
+	cout << "\n=== SIZE ===\n";
+	if (soLuongCH == 0) cout << "Chưa có dữ liệu\n";
+	else inCauHinh(ch, soLuongCH);
+	cout << endl;
+}
+
+// =========================================================
+// QUẢN LÍ DỮ LIỆU PHÁT SINH
+// =========================================================
+
+// =========================================================
+// I. QUẢN LÍ BÁN HÀNG VÀ ORDER
+// =========================================================
+Ban docBan(string thongTin) {
+	istringstream phanTach(thongTin);
+	Ban b;
+	string boNhoDem;
+	getline(phanTach, boNhoDem, '|'); b.soBan = stoi(boNhoDem);
+	getline(phanTach, boNhoDem); b.trangThai = stoi(boNhoDem);
+	return b;
+}
+bool docFileBan(string tenFile, Ban dsBan[], int& soLuong) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() < 1) continue;
+		dsBan[soLuong] = docBan(boNhoDem);
+		if (dsBan[soLuong].soBan != string::npos) soLuong++;
+	}
+	docFile.close();
+	return true;
+}
+bool ghiFileBan(string tenFile, Ban dsBan[], int& soLuong) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	for (int i = 0; i < soLuong; i++) {
+		ghiFile << dsBan[i].soBan << "|" << dsBan[i].trangThai << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+void inSoDoBan(Ban dsBan[], int soLuong) {
+	veTieuDe("SƠ ĐỒ BÀN");
+	veDuong(60);
+	for (int i = 0; i < soLuong; i++) {
+		string trangThai = (dsBan[i].trangThai == 0) ? "Trống" : "Có khách";
+		cout << format("[{:02} - {:<8}]", dsBan[i].soBan, trangThai);
+		if ((i + 1) % 5 == 0) cout << endl;
+	}
+	veDuong(60);
+}
+
+
+
+
+
+ChiTietMon docChiTietMon(string thongTin) {
+	istringstream phanTach(thongTin);
+	ChiTietMon mon;
+	string boNhoDem;
+	getline(phanTach, mon.tenMon, '|');
+	getline(phanTach, mon.size, '|');
+	getline(phanTach, boNhoDem, '|'); mon.duong = stoi(boNhoDem);
+	getline(phanTach, boNhoDem, '|'); mon.da = stoi(boNhoDem);
+	getline(phanTach, mon.topping, '|');
+	getline(phanTach, boNhoDem, '|'); mon.soLuong = stoi(boNhoDem);
+	getline(phanTach, boNhoDem); mon.thanhTien = stoi(boNhoDem);
+	return mon;
+}
+
+HoaDon docHoaDon(string thongTin) {
+	istringstream phanTach(thongTin);
+	HoaDon hd;
+	string boNhoDem;
+	getline(phanTach, hd.maHD, '|');
+	getline(phanTach, hd.ngay, '|');
+	getline(phanTach, boNhoDem, '|'); hd.soBan = stoi(boNhoDem);
+	getline(phanTach, boNhoDem, '|'); hd.soMon = stoi(boNhoDem);
+	getline(phanTach, boNhoDem, '|'); hd.tongTien = stoi(boNhoDem);
+	getline(phanTach, hd.ghiChu);
+	return hd;
+}
+
+bool docFileHoaDon(string tenFile, HoaDon dsHD[], int& soLuong) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+	string boNhoDem;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.find("HD_START") != string::npos) {
+			getline(docFile, boNhoDem);
+			dsHD[soLuong] = docHoaDon(boNhoDem);
+
+			int soMon = 0;
+			while (getline(docFile, boNhoDem) && boNhoDem.find("HD_END") == string::npos) {
+				if (boNhoDem.length() > 5) {
+					dsHD[soLuong].dsMon[soMon] = docChiTietMon(boNhoDem);
+					soMon++;
+				}
+			}
+			soLuong++;
+		}
+	}
+	docFile.close();
+	return true;
+}
+
+bool ghiFileHoaDon(string tenFile, HoaDon dsHD[], int soLuong) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+
+	for (int i = 0; i < soLuong; i++) {
+		ghiFile << "HD_START" << endl;
+		ghiFile << dsHD[i].maHD << "|" << dsHD[i].ngay << "|"
+			<< dsHD[i].soBan << "|" << dsHD[i].soMon << "|"
+			<< dsHD[i].tongTien << "|" << dsHD[i].ghiChu << endl;
+
+		for (int j = 0; j < dsHD[i].soMon; j++) {
+			ghiFile << dsHD[i].dsMon[j].tenMon << "|"
+				<< dsHD[i].dsMon[j].size << "|"
+				<< dsHD[i].dsMon[j].duong << "|"
+				<< dsHD[i].dsMon[j].da << "|"
+				<< dsHD[i].dsMon[j].topping << "|"
+				<< dsHD[i].dsMon[j].soLuong << "|"
+				<< dsHD[i].dsMon[j].thanhTien << endl;
+		}
+		ghiFile << "HD_END" << endl;
+	}
+
+	ghiFile.close();
+	return true;
+}
+
+void luuDoanhThu(HoaDon hd) {
+	ofstream f("HoaDonDaThanhToan.txt", ios::app);
+	if (f.is_open()) {
+		f << "HD_START" << endl;
+		f << format("{}|{}|{}|{}", hd.maHD, hd.ngay, hd.soBan, hd.tongTien) << endl;
+		for (int i = 0; i < hd.soMon; i++) {
+			ChiTietMon m = hd.dsMon[i];
+			f << format("MON|{}|{}|{}|{}|{}", m.maMon, m.tenMon, m.giaGoc, m.soLuong, m.giaGoc * m.soLuong) << endl;
+			if (m.size != "S")
+				f << format("SZ|SZ_{}|Size {}|{}|{}|{}", m.size, m.size, m.giaSize, m.soLuong, m.giaSize * m.soLuong) << endl;
+			if (!m.topping.empty())
+				f << format("TP|{}|{}|{}|{}|{}", m.maTopping, m.topping, m.giaTopping, m.soLuong, m.giaTopping * m.soLuong) << endl;
+		}
+		f << "HD_END" << endl;
+		f.close();
+	}
+}
+
+// Hàm 2: Xuất Bill khách
+void xuatBillChoKhach(HoaDon hd) {
+	string tenFile = "PhieuInHoaDon.txt";
+	ofstream f(tenFile);
+	if (f.is_open()) {
+		f << "==================================================" << endl;
+		f << "              CUA HANG CA PHE ABC                 " << endl;
+		f << "==================================================" << endl;
+		f << format(" SO HD: {:<18} NGAY: {:<10}", hd.maHD, hd.ngay) << endl;
+		f << format(" BAN:   {:<18}", (hd.soBan == 0 ? "Mang Ve" : to_string(hd.soBan))) << endl;
+		f << "--------------------------------------------------" << endl;
+		f << format(" {:<28} {:^4} {:>14} ", "TEN", "SL", "THANH TIEN") << endl;
+		f << "--------------------------------------------------" << endl;
+		for (int i = 0; i < hd.soMon; i++) {
+			ChiTietMon m = hd.dsMon[i];
+			f << format(" {:<28} {:^4} {:>14} ", m.tenMon, m.soLuong, m.giaGoc * m.soLuong) << endl;
+			if (m.size != "S") f << format(" {:<28} {:^4} {:>14} ", " + Size " + m.size, "", m.giaSize * m.soLuong) << endl;
+			if (!m.topping.empty()) f << format(" {:<28} {:^4} {:>14} ", " + " + m.topping, "", m.giaTopping * m.soLuong) << endl;
+			f << " - - - - - - - - - - - - - - - - - - - - - - - - -" << endl;
+		}
+		f << "--------------------------------------------------" << endl;
+		f << format(" TONG CONG: {:>36} VND ", hd.tongTien) << endl;
+		f << "==================================================" << endl;
+		f.close();
+		// string lenh = "notepad.exe " + tenFile; system(lenh.c_str());
+	}
+}
+
+// Hàm 3: In lại bill cũ
+void inLaiHoaDonCu() {
+	veTieuDe("IN LẠI HÓA ĐƠN CŨ");
+	cout << "--> Nhập MÃ HÓA ĐƠN (VD: HD170501): "; string maTim; getline(cin, maTim);
+	ifstream f("HoaDonDaThanhToan.txt");
+	if (!f.is_open()) { cout << "Lỗi mở file!\n"; return; }
+
+	string line; bool timThay = false; HoaDon hd; int idx = -1;
+	while (getline(f, line)) {
+		if (line.find(maTim) != string::npos && line.find("HD_START") == string::npos) {
+			timThay = true;
+			hd.maHD = tachData(line, 0); hd.ngay = tachData(line, 1);
+			string sb = tachData(line, 2); hd.soBan = (sb == "Mang Ve") ? 0 : stoi(sb);
+			hd.tongTien = stoi(tachData(line, 3)); hd.soMon = 0; idx = -1;
+
+			while (getline(f, line)) {
+				if (line == "HD_END") break;
+				if (line.find("MON|") == 0) {
+					idx++; hd.soMon++;
+					hd.dsMon[idx].maMon = tachData(line, 1);
+					hd.dsMon[idx].tenMon = tachData(line, 2);
+					hd.dsMon[idx].giaGoc = stoi(tachData(line, 3));
+					hd.dsMon[idx].soLuong = stoi(tachData(line, 4));
+					hd.dsMon[idx].size = "S"; hd.dsMon[idx].topping = ""; // Reset
+				}
+				else if (line.find("SZ|") == 0) {
+					string sFull = tachData(line, 2);
+					hd.dsMon[idx].size = sFull.substr(5);
+					hd.dsMon[idx].giaSize = stoi(tachData(line, 3));
+				}
+				else if (line.find("TP|") == 0) {
+					hd.dsMon[idx].topping = tachData(line, 2);
+					hd.dsMon[idx].giaTopping = stoi(tachData(line, 3));
+				}
+			}
+			break;
+		}
+	}
+	f.close();
+	if (timThay) xuatBillChoKhach(hd); else cout << "Không tìm thấy!\n";
+}
+
+// Hàm 4: Tạo Order (Full tính năng)
+void taoOrderMoi() {
+	Ban dsBan[TOI_DA]; int slBan = 0; docFileBan("Ban.txt", dsBan, slBan);
+	DoUong dsDU[TOI_DA]; int slDU = 0; docFileDoUong("DoUong.txt", dsDU, slDU);
+	DoAn dsDA[TOI_DA]; int slDA = 0; docFileDoAn("DoAn.txt", dsDA, slDA);
+	Topping dsTop[TOI_DA]; int slTop = 0; docFileTopping("Topping.txt", dsTop, slTop);
+	CauHinh dsSize[TOI_DA]; int slSize = 0; docFileCauHinh("CauHinhOrder.txt", dsSize, slSize);
+
+	MonMenu menu[200]; int slMenu = 0;
+	for (int i = 0; i < slDU; i++) menu[slMenu++] = { dsDU[i].ma, dsDU[i].ten, "Do Uong", dsDU[i].giaGoc };
+	for (int i = 0; i < slDA; i++) menu[slMenu++] = { dsDA[i].ma, dsDA[i].ten, "Do An", dsDA[i].giaGoc };
+
+	veTieuDe("ORDER TẠI QUẦY"); inSoDoBan(dsBan, slBan);
+	HoaDon hd; cout << "--> Số bàn (0=Mang ve): "; string s; getline(cin, s); hd.soBan = (s == "") ? 0 : stoi(s);
+	if (hd.soBan != 0) {
+		for (int i = 0; i < slBan; i++) if (dsBan[i].soBan == hd.soBan && dsBan[i].trangThai == 1) {
+			cout << "[!] Bàn bận. Tiếp tục? (Y/N) "; if (!xacNhan()) return;
+		}
+	}
+	hd.maHD = "HD" + to_string(time(0)); hd.ngay = layNgayHienTai(); hd.soMon = 0; hd.tongTien = 0;
+
+	while (true) {
+		system("cls"); veTieuDe(format("BÀN {} - TỔNG: {}", hd.soBan, hd.tongTien));
+		cout << format("| {:<10} | {:<30} | {:<10} |", "MA", "TEN", "GIA") << endl; veDuong(58);
+		for (int i = 0; i < slMenu; i++) cout << format("| {:<10} | {:<30} | {:<10} |", menu[i].ma, menu[i].ten, menu[i].gia) << endl;
+		veDuong(58); cout << "\n--> Nhập MÃ (0 Thanh Toán): "; string ma; getline(cin, ma); if (ma == "0") break;
+
+		bool found = false; MonMenu m;
+		for (int i = 0; i < slMenu; i++) if (menu[i].ma == ma) { m = menu[i]; found = true; break; }
+
+		if (found) {
+			ChiTietMon ct; ct.maMon = m.ma; ct.tenMon = m.ten; ct.giaGoc = m.gia;
+			cout << "--> SL: "; string sl; getline(cin, sl); ct.soLuong = (sl == "") ? 1 : stoi(sl);
+			ct.size = "S"; ct.giaSize = 0; ct.topping = ""; ct.giaTopping = 0;
+
+			if (m.loai == "Do Uong") {
+				cout << "\n-- SIZE: "; for (int k = 0; k < slSize; k++) cout << format("{} (+{}) | ", dsSize[k].size, dsSize[k].giaCongThem);
+				cout << "\n--> Nhập tên Size: "; string sz; getline(cin, sz);
+				for (auto& c : sz) c = toupper(c);
+				for (int k = 0; k < slSize; k++) if (dsSize[k].size == sz) { ct.size = sz; ct.giaSize = dsSize[k].giaCongThem; break; }
+
+				cout << "\n-- TOPPING: "; for (int k = 0; k < slTop; k++) cout << format("{} (+{}) | ", dsTop[k].ma, dsTop[k].giaGoc);
+				cout << "\n--> Nhập MÃ Top: "; string mt; getline(cin, mt);
+				for (int k = 0; k < slTop; k++) if (dsTop[k].ma == mt) { ct.topping = dsTop[k].ten; ct.maTopping = dsTop[k].ma; ct.giaTopping = dsTop[k].giaGoc; break; }
+			}
+			ct.thanhTien = (ct.giaGoc + ct.giaSize + ct.giaTopping) * ct.soLuong;
+			hd.dsMon[hd.soMon++] = ct; hd.tongTien += ct.thanhTien;
+		}
+	}
+
+	if (hd.soMon > 0) {
+		cout << "\n--> TỔNG: " << hd.tongTien << ". Khách đưa: "; string sk; getline(cin, sk);
+		if (stoi(sk) >= hd.tongTien && xacNhan()) {
+			luuDoanhThu(hd); xuatBillChoKhach(hd);
+			if (hd.soBan != 0) {
+				for (int i = 0; i < slBan; i++) if (dsBan[i].soBan == hd.soBan) dsBan[i].trangThai = 1;
+				ghiFileBan("Ban.txt", dsBan, slBan);
+			}
+			cout << "--> DONE!\n";
+		}
+	}
+}
+
+void donBan() {
+	Ban ds[TOI_DA]; int n; docFileBan("Ban.txt", ds, n); inSoDoBan(ds, n);
+	cout << "--> Nhập bàn dọn (0 thoát): "; string s; getline(cin, s); int b = stoi(s);
+	if (b != 0) {
+		for (int i = 0; i < n; i++) if (ds[i].soBan == b) ds[i].trangThai = 0;
+		ghiFileBan("Ban.txt", ds, n); cout << "--> Đã dọn!\n";
+	}
+}
+
+struct MonMenu { string ma, ten, loai; int gia = 0; };
+
+void quanLiBanHangVaOrder() {
+	while (true) {
+		system("cls"); veTieuDe("QUẢN LÝ BÁN HÀNG");
+		cout << "[1] Order & Pay\n[2] Dọn bàn\n[3] Sơ đồ bàn\n[4] In lại Bill cũ\n[0] Về\nChọn: ";
+		string s; getline(cin, s); int c = (s == "") ? 0 : stoi(s);
+		if (c == 0) break;
+		if (c == 1) taoOrderMoi(); else if (c == 2) donBan(); else if (c == 4) inLaiHoaDonCu();
+		else if (c == 3) { Ban ds[100]; int n; docFileBan("Ban.txt", ds, n); inSoDoBan(ds, n); }
+		dungManHinh();
+	}
+}
+
+string layNgayHienTai() {
+	time_t bayGio = time(0);
+	tm ltm;
+	localtime_s(&ltm, &bayGio);
+	return to_string(ltm.tm_mday) + "/" + to_string(1 + ltm.tm_mon) + "/" + to_string(1900 + ltm.tm_year);
+}
+
+// =========================================================
+// CÁC HÀM HỖ TRỢ ORDER 
+// =========================================================
+
+// Struct tạm dùng để gộp Menu Đồ Ăn và Đồ Uống chung vào 1 danh sách
+struct MonMenu {
+	string ma, ten, loai;
+	int gia = 0;
+};
+
+// Hàm ghi nối tiếp (Append) hóa đơn mới vào file
+void ghiOrderVaoFile(HoaDon hd) {
+	ofstream ghiFile("HoaDonChuaThanhToan.txt", ios::app); // ios::app để không xóa dữ liệu cũ
+	if (ghiFile.is_open()) {
+		ghiFile << "HD_START" << endl;
+		ghiFile << format("{}|{}|{}|{}|{}|{}",
+			hd.maHD, hd.ngay, hd.soBan, hd.soMon, hd.tongTien, hd.ghiChu) << endl;
+
+		for (int i = 0; i < hd.soMon; i++) {
+			ghiFile << format("{}|{}|{}|{}|{}|{}|{}",
+				hd.dsMon[i].tenMon, hd.dsMon[i].size, hd.dsMon[i].duong,
+				hd.dsMon[i].da, hd.dsMon[i].topping, hd.dsMon[i].soLuong, hd.dsMon[i].thanhTien) << endl;
+		}
+		ghiFile << "HD_END" << endl;
+		ghiFile.close();
+	}
+}
+
+// =========================================================
+// IV. CHỨC NĂNG TẠO ORDER MỚI 
+// =========================================================
+void taoOrderMoi() {
+	// 1. CHUẨN BỊ DỮ LIỆU
+	Ban dsBan[TOI_DA]; int soLuongBan = 0;
+	docFileBan("Ban.txt", dsBan, soLuongBan);
+
+	DoUong dsDoUong[TOI_DA]; int soLuongDU = 0;
+	docFileDoUong("DoUong.txt", dsDoUong, soLuongDU);
+
+	DoAn dsDoAn[TOI_DA]; int soLuongDA = 0;
+	docFileDoAn("DoAn.txt", dsDoAn, soLuongDA);
+
+	// Gộp Đồ Uống và Đồ Ăn vào mảng chung để dễ tìm kiếm
+	MonMenu menuChung[200];
+	int soLuongMenu = 0;
+
+	// Đổ Đồ Uống vào trước
+	for (int i = 0; i < soLuongDU; i++) {
+		menuChung[soLuongMenu] = { dsDoUong[i].ma, dsDoUong[i].ten, "Do Uong", dsDoUong[i].giaGoc };
+		soLuongMenu++;
+	}
+	// Đổ Đồ Ăn vào sau
+	for (int i = 0; i < soLuongDA; i++) {
+		menuChung[soLuongMenu] = { dsDoAn[i].ma, dsDoAn[i].ten, "Do An", dsDoAn[i].giaGoc };
+		soLuongMenu++;
+	}
+
+	// 2. CHỌN BÀN
+	veTieuDe("TẠO ORDER MỚI");
+	inSoDoBan(dsBan, soLuongBan);
+
+	HoaDon hd;
+	cout << "--> Nhập số bàn (0 = Mang về): ";
+	string nhapBan; getline(cin, nhapBan);
+	hd.soBan = (nhapBan == "") ? 0 : stoi(nhapBan);
+
+	// Kiểm tra trạng thái bàn
+	if (hd.soBan != 0) {
+		bool timThay = false;
+		for (int i = 0; i < soLuongBan; i++) {
+			if (dsBan[i].soBan == hd.soBan) {
+				if (dsBan[i].trangThai == 1) {
+					cout << format("\n[!] Bàn {} đang có khách! Ghi thêm món? (Y/N)\n", hd.soBan);
+					if (!xacNhan()) return;
+				}
+				dsBan[i].trangThai = 1; // Đánh dấu có khách
+				timThay = true;
+				break;
+			}
+		}
+		if (timThay) ghiFileBan("Ban.txt", dsBan, soLuongBan);
+		else { cout << "\n--> [LỖI] Số bàn không tồn tại!\n"; dungManHinh(); return; }
+	}
+
+	// Khởi tạo thông tin hóa đơn
+	hd.maHD = "HD" + to_string(time(0));
+	hd.ngay = layNgayHienTai();
+	hd.soMon = 0;
+	hd.tongTien = 0;
+
+	// 3. GỌI MÓN (VÒNG LẶP)
+	while (true) {
+		system("cls");
+		veTieuDe(format("ORDER BÀN {} - TỔNG: {} VNĐ", hd.soBan, hd.tongTien));
+
+		// In Menu tổng hợp
+		veDuong(65);
+		cout << format("| {:<10} | {:<30} | {:<10} |", "MÃ", "TÊN MÓN", "GIÁ") << endl;
+		veDuong(65);
+		for (int i = 0; i < soLuongMenu; i++) {
+			cout << format("| {:<10} | {:<30} | {:<10} |", menuChung[i].ma, menuChung[i].ten, menuChung[i].gia) << endl;
+		}
+		veDuong(65);
+
+		cout << "\n--> Nhập MÃ món (0 để HOÀN TẤT): ";
+		string maMon; getline(cin, maMon);
+		if (maMon == "0") break;
+
+		// Tìm món trong menu chung
+		bool timThay = false;
+		MonMenu monChon;
+		for (int i = 0; i < soLuongMenu; i++) {
+			if (menuChung[i].ma == maMon) {
+				monChon = menuChung[i];
+				timThay = true;
+				break;
+			}
+		}
+
+		if (timThay) {
+			ChiTietMon chiTiet;
+			chiTiet.tenMon = monChon.ten;
+
+			cout << format("--> Món [{}]. Nhập số lượng: ", monChon.ten);
+			string sl; getline(cin, sl);
+			chiTiet.soLuong = (sl == "") ? 1 : stoi(sl);
+
+			chiTiet.thanhTien = monChon.gia * chiTiet.soLuong;
+
+			// Cấu hình mặc định
+			chiTiet.size = "S";
+			chiTiet.topping = "";
+			// Nếu là đồ uống thì mặc định 100% đường đá, đồ ăn thì bằng 0
+			chiTiet.duong = (monChon.loai == "Do Uong") ? 100 : 0;
+			chiTiet.da = (monChon.loai == "Do Uong") ? 100 : 0;
+
+			// Lưu vào danh sách món của hóa đơn
+			hd.dsMon[hd.soMon] = chiTiet;
+			hd.soMon++;
+			hd.tongTien += chiTiet.thanhTien;
+
+			cout << "\n--> [OK] Đã thêm món!\n";
+		}
+		else {
+			cout << "\n--> [LỖI] Mã món không tồn tại!\n";
+		}
+		dungManHinh();
+	}
+
+	// 4. LƯU HÓA ĐƠN
+	if (hd.soMon > 0) {
+		ghiOrderVaoFile(hd);
+		cout << format("\n--> [THÀNH CÔNG] Đã chuyển order xuống bếp! Tổng tiền: {}\n", hd.tongTien);
+	}
+	else {
+		// Nếu hủy order thì trả lại trạng thái bàn Trống (nếu lỡ chọn bàn)
+		if (hd.soBan != 0 && hd.tongTien == 0) {
+			for (int i = 0; i < soLuongBan; i++) {
+				if (dsBan[i].soBan == hd.soBan) {
+					dsBan[i].trangThai = 0;
+					ghiFileBan("Ban.txt", dsBan, soLuongBan);
+					break;
+				}
+			}
+		}
+		cout << "\n--> [ĐÃ HỦY] Không có món nào được chọn.\n";
+	}
+}
+
+// MENU QUẢN LÝ (Đã ẩn các hàm chưa viết để tránh lỗi)
+void quanLiBanHangVaOrder() {
+	while (true) {
+		system("cls");
+		veTieuDe("[I.1] QUẢN LÝ BÁN HÀNG VÀ ORDER");
+		cout << format("{:<60}", "[1] Tạo order mới") << endl;
+		cout << format("{:<60}", "[2] Cập nhật order (Đang bảo trì)") << endl;
+		cout << format("{:<60}", "[3] Xử lý hóa đơn (Đang bảo trì)") << endl;
+		cout << format("{:<60}", "[4] Xem sơ đồ bàn") << endl;
+		cout << format("{:<60}", "[5] Danh sách hóa đơn (Đang bảo trì)") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) taoOrderMoi();
+		// else if (luaChon == 2) capNhatOrder();    <-- Tạm ẩn vì chưa có hàm này
+		// else if (luaChon == 3) xuLyHoaDon();      <-- Tạm ẩn
+		else if (luaChon == 4) {
+			Ban dsBan[TOI_DA]; int soBan = 0;
+			docFileBan("Ban.txt", dsBan, soBan);
+			inSoDoBan(dsBan, soBan);
+		}
+		// else if (luaChon == 5) xemDanhSachHoaDon(); <-- Tạm ẩn
+		else cout << "\n--> Chức năng đang phát triển hoặc lựa chọn sai!" << endl;
+
+		dungManHinh();
+	}
+}
+
+
+
+
+// =========================================================
+// II. QUẢN LÍ KHO
+// =========================================================
+NguyenLieu docNguyenLieu(string thongTin) {
+	istringstream phanTach(thongTin);
+	NguyenLieu nl;
+	string boNhoDem;
+
+	getline(phanTach, nl.ma, '|');
+	getline(phanTach, nl.ten, '|');
+	getline(phanTach, nl.donVi, '|');
+	getline(phanTach, boNhoDem, '|'); nl.soLuong = stoi(boNhoDem);
+	getline(phanTach, boNhoDem); nl.giaNhap = stoi(boNhoDem);
+
+	return nl;
+}
+
+bool docFileNguyenLieu(string tenFile, NguyenLieu dsNL[], int& soLuong) {
+	ifstream docFile(tenFile, ios::in);
+	if (!docFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+
+	string boNhoDem;
+	while (getline(docFile, boNhoDem)) {
+		if (boNhoDem.length() < 5) continue;
+		dsNL[soLuong] = docNguyenLieu(boNhoDem);
+		if (dsNL[soLuong].ma != "") soLuong++;
+	}
+	docFile.close();
+	return true;
+}
+
+bool ghiFileNguyenLieu(string tenFile, NguyenLieu dsNL[], int soLuong) {
+	ofstream ghiFile(tenFile, ios::out);
+	if (!ghiFile.is_open()) {
+		cout << "LỖI: Không thể mở file '" << tenFile << "'!" << endl;
+		return false;
+	}
+
+	for (int i = 0; i < soLuong; i++) {
+		ghiFile << dsNL[i].ma << "|"
+			<< dsNL[i].ten << "|"
+			<< dsNL[i].donVi << "|"
+			<< dsNL[i].soLuong << "|"
+			<< dsNL[i].giaNhap << endl;
+	}
+	ghiFile.close();
+	return true;
+}
+
+void inKho(NguyenLieu dsNL[], int soLuong) {
+	veDuong(85);
+	cout << format("| {:<10} | {:<25} | {:<10} | {:<10} | {:<12} |",
+		"MÃ", "TÊN NGUYÊN LIỆU", "ĐƠN VỊ", "SỐ LƯỢNG", "GIÁ NHẬP") << endl;
+	veDuong(85);
+	for (int i = 0; i < soLuong; i++) {
+		cout << format("| {:<10} | {:<25} | {:<10} | {:<10} | {:<12} |",
+			dsNL[i].ma, dsNL[i].ten, dsNL[i].donVi,
+			dsNL[i].soLuong, dsNL[i].giaNhap) << endl;
+	}
+	veDuong(85);
+}
+
+void xemKho() {
+	system("cls");
+	veTieuDe("DANH SÁCH NGUYÊN LIỆU TRONG KHO");
+
+	NguyenLieu dsNL[TOI_DA];
+	int soLuong = 0;
+
+	if (docFileNguyenLieu("Kho.txt", dsNL, soLuong)) {
+		inKho(dsNL, soLuong);
+	}
+	else {
+		cout << "\n--> Kho trống hoặc chưa có dữ liệu!" << endl;
+	}
+}
+
+void nhapKho() {
+	system("cls");
+	veTieuDe("NHẬP KHO");
+
+	NguyenLieu dsNL[TOI_DA];
+	int soLuong = 0;
+	docFileNguyenLieu("Kho.txt", dsNL, soLuong);
+
+	PhieuNhap phieu;
+	phieu.maPhieu = "PN" + to_string(time(0));
+	phieu.ngay = layNgayHienTai();
+	phieu.soNL = 0;
+	phieu.tongTien = 0;
+
+	cout << "Người nhập: ";
+	getline(cin, phieu.nguoiNhap);
+
+	while (true) {
+		NguyenLieu nl;
+		cout << "\nNhập mã nguyên liệu (0 để kết thúc): ";
+		getline(cin, nl.ma);
+
+		if (nl.ma == "0") break;
+
+		cout << "Tên nguyên liệu: ";
+		getline(cin, nl.ten);
+
+		cout << "Đơn vị: ";
+		getline(cin, nl.donVi);
+
+		cout << "Số lượng nhập: ";
+		string slStr;
+		getline(cin, slStr);
+		nl.soLuong = stoi(slStr);
+
+		cout << "Giá nhập: ";
+		string giaStr;
+		getline(cin, giaStr);
+		nl.giaNhap = stoi(giaStr);
+
+		bool timThay = false;
+		for (int i = 0; i < soLuong; i++) {
+			if (dsNL[i].ma == nl.ma) {
+				dsNL[i].soLuong += nl.soLuong;
+				dsNL[i].giaNhap = nl.giaNhap;
+				timThay = true;
+				break;
+			}
+		}
+
+		if (!timThay) {
+			dsNL[soLuong] = nl;
+			soLuong++;
+		}
+
+		phieu.dsNL[phieu.soNL] = nl;
+		phieu.soNL++;
+		phieu.tongTien += nl.soLuong * nl.giaNhap;
+
+		cout << "\n--> Đã thêm vào phiếu nhập!" << endl;
+	}
+
+	if (phieu.soNL > 0) {
+		ghiFileNguyenLieu("Kho.txt", dsNL, soLuong);
+
+		ofstream luuPhieu("PhieuNhap.txt", ios::app);
+		if (luuPhieu.is_open()) {
+			luuPhieu << "PN_START" << endl;
+			luuPhieu << phieu.maPhieu << "|" << phieu.ngay << "|"
+				<< phieu.nguoiNhap << "|" << phieu.soNL << "|"
+				<< phieu.tongTien << endl;
+
+			for (int i = 0; i < phieu.soNL; i++) {
+				luuPhieu << phieu.dsNL[i].ma << "|"
+					<< phieu.dsNL[i].ten << "|"
+					<< phieu.dsNL[i].donVi << "|"
+					<< phieu.dsNL[i].soLuong << "|"
+					<< phieu.dsNL[i].giaNhap << endl;
+			}
+			luuPhieu << "PN_END" << endl;
+			luuPhieu.close();
+		}
+
+		cout << "\n--> [THÀNH CÔNG] Đã nhập kho và lưu phiếu nhập!" << endl;
+	}
+}
+
+void xuatKho() {
+	system("cls");
+	veTieuDe("XUẤT KHO");
+
+	NguyenLieu dsNL[TOI_DA];
+	int soLuong = 0;
+
+	if (docFileNguyenLieu("Kho.txt", dsNL, soLuong)) {
+		inKho(dsNL, soLuong);
+	}
+
+	cout << "\nNhập mã nguyên liệu cần xuất: ";
+	string ma;
+	getline(cin, ma);
+
+	bool timThay = false;
+	for (int i = 0; i < soLuong; i++) {
+		if (dsNL[i].ma == ma) {
+			timThay = true;
+			cout << format("Nguyên liệu: {} - Tồn kho: {} {}",
+				dsNL[i].ten, dsNL[i].soLuong, dsNL[i].donVi) << endl;
+
+			cout << "Số lượng xuất: ";
+			string slStr;
+			getline(cin, slStr);
+			int soLuongXuat = stoi(slStr);
+
+			if (soLuongXuat > dsNL[i].soLuong) {
+				cout << "\n--> [LỖI] Số lượng trong kho không đủ!" << endl;
+			}
+			else {
+				dsNL[i].soLuong -= soLuongXuat;
+				ghiFileNguyenLieu("Kho.txt", dsNL, soLuong);
+				cout << "\n--> [THÀNH CÔNG] Đã xuất kho!" << endl;
+			}
+			break;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> Không tìm thấy nguyên liệu!" << endl;
+	}
+}
+
+void quanLiKho() {
+	while (true) {
+		system("cls");
+		veTieuDe("[I.2] QUẢN LÝ KHO");
+		cout << format("{:<60}", "[1] Xem kho") << endl;
+		cout << format("{:<60}", "[2] Nhập kho") << endl;
+		cout << format("{:<60}", "[3] Xuất kho") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) xemKho();
+		else if (luaChon == 2) nhapKho();
+		else if (luaChon == 3) xuatKho();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+
+// =========================================================
+// III. TRA CỨU DỮ LIỆU GIAO DỊCH
+// =========================================================
+void inHoaDon(HoaDon hd) {
+	cout << endl;
+	veDuong(60);
+	cout << format(" HÓA ĐƠN: {:<20} NGÀY: {:<15}", hd.maHD, hd.ngay) << endl;
+	cout << format(" BÀN SỐ:  {:<20} TRẠNG THÁI: {}",
+		(hd.soBan == 0 ? "Mang Ve" : to_string(hd.soBan)),
+		"Da Thanh Toan") << endl;
+	veDuong(60);
+	cout << format("| {:<20} | {:<5} | {:<8} | {:<12} |", "TEN MON", "SL", "GIA", "THANH TIEN") << endl;
+	veDuong(60);
+
+	for (int i = 0; i < hd.soMon; i++) {
+		// Tính giá đơn vị để in (Thành tiền / Số lượng)
+		int donGia = (hd.dsMon[i].soLuong > 0) ? (hd.dsMon[i].thanhTien / hd.dsMon[i].soLuong) : 0;
+
+		cout << format("| {:<20} | {:<5} | {:<8} | {:<12} |",
+			hd.dsMon[i].tenMon,
+			hd.dsMon[i].soLuong,
+			donGia,
+			hd.dsMon[i].thanhTien) << endl;
+	}
+	veDuong(60);
+	cout << format(" TỔNG CỘNG: {:>42} VNĐ", hd.tongTien) << endl;
+	veDuong(60);
+}
+
+void traCuuHoaDon() {
+	system("cls");
+	veTieuDe("TRA CỨU HÓA ĐƠN");
+
+	cout << "[1] Tra cứu hóa đơn chưa thanh toán" << endl;
+	cout << "[2] Tra cứu hóa đơn đã thanh toán" << endl;
+	cout << "Chọn: ";
+
+	string luaChon;
+	getline(cin, luaChon);
+
+	string tenFile = (luaChon == "1") ? "HoaDonChuaThanhToan.txt" : "HoaDonDaThanhToan.txt";
+
+	HoaDon dsHD[TOI_DA];
+	int soHD = 0;
+	docFileHoaDon(tenFile, dsHD, soHD);
+
+	if (soHD == 0) {
+		cout << "\n--> Không có hóa đơn nào!" << endl;
+		return;
+	}
+
+	cout << "\nNhập mã hóa đơn hoặc số bàn: ";
+	string tuKhoa;
+	getline(cin, tuKhoa);
+
+	bool timThay = false;
+	for (int i = 0; i < soHD; i++) {
+		if (dsHD[i].maHD.find(tuKhoa) != string::npos ||
+			to_string(dsHD[i].soBan).find(tuKhoa) != string::npos) {
+			system("cls");
+			inHoaDon(dsHD[i]);
+			timThay = true;
+			break;
+		}
+	}
+
+	if (!timThay) {
+		cout << "\n--> Không tìm thấy hóa đơn!" << endl;
+	}
+}
+
+void traCuuGiaoDich() {
+	while (true) {
+		system("cls");
+		veTieuDe("[I.3] TRA CỨU DỮ LIỆU GIAO DỊCH");
+		cout << format("{:<60}", "[1] Tra cứu hóa đơn") << endl;
+		cout << format("{:<60}", "[0] Quay lại") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) traCuuHoaDon();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+// =========================================================
+// BÁO CÁO THỐNG KÊ
+// =========================================================
+void thongKeBanHang() {
+	system("cls");
+	veTieuDe("THỐNG KÊ BÁN HÀNG");
+
+	HoaDon dsHD[TOI_DA];
+	int soHD = 0;
+	docFileHoaDon("HoaDonDaThanhToan.txt", dsHD, soHD);
+
+	if (soHD == 0) {
+		cout << "\n--> Chưa có dữ liệu bán hàng!" << endl;
+		return;
+	}
+
+	int tongDoanhThu = 0;
+	int tongSoMon = 0;
+
+	cout << "\n=== DANH SÁCH HÓA ĐƠN ĐÃ THANH TOÁN ===" << endl;
+	veDuong(75);
+	cout << format("| {:<15} | {:<12} | {:<10} | {:<12} | {:<10} |",
+		"MÃ HĐ", "NGÀY", "BÀN", "TỔNG TIỀN", "SỐ MÓN") << endl;
+	veDuong(75);
+
+	for (int i = 0; i < soHD; i++) {
+		cout << format("| {:<15} | {:<12} | {:<10} | {:<12} | {:<10} |",
+			dsHD[i].maHD, dsHD[i].ngay,
+			(dsHD[i].soBan == 0 ? "Mang về" : to_string(dsHD[i].soBan)),
+			dsHD[i].tongTien, dsHD[i].soMon) << endl;
+
+		tongDoanhThu += dsHD[i].tongTien;
+		tongSoMon += dsHD[i].soMon;
+	}
+	veDuong(75);
+
+	cout << "\n=== THỐNG KÊ TỔNG QUAN ===" << endl;
+	cout << format("Tổng số hóa đơn: {}", soHD) << endl;
+	cout << format("Tổng doanh thu: {} VNĐ", tongDoanhThu) << endl;
+	cout << format("Tổng số món đã bán: {}", tongSoMon) << endl;
+	cout << format("Doanh thu trung bình/hóa đơn: {} VNĐ",
+		(soHD > 0 ? tongDoanhThu / soHD : 0)) << endl;
+}
+
+void thongKeMonBanChay() {
+	system("cls");
+	veTieuDe("THỐNG KÊ MÓN BÁN CHẠY");
+
+	HoaDon dsHD[TOI_DA];
+	int soHD = 0;
+	docFileHoaDon("HoaDonDaThanhToan.txt", dsHD, soHD);
+
+	if (soHD == 0) {
+		cout << "\n--> Chưa có dữ liệu bán hàng!" << endl;
+		return;
+	}
+
+	string dsMon[TOI_DA];
+	int soLuongBan[TOI_DA];
+	int soMon = 0;
+
+	for (int i = 0; i < soHD; i++) {
+		for (int j = 0; j < dsHD[i].soMon; j++) {
+			bool timThay = false;
+			for (int k = 0; k < soMon; k++) {
+				if (dsMon[k] == dsHD[i].dsMon[j].tenMon) {
+					soLuongBan[k] += dsHD[i].dsMon[j].soLuong;
+					timThay = true;
+					break;
+				}
+			}
+
+			if (!timThay) {
+				dsMon[soMon] = dsHD[i].dsMon[j].tenMon;
+				soLuongBan[soMon] = dsHD[i].dsMon[j].soLuong;
+				soMon++;
+			}
+		}
+	}
+
+	for (int i = 0; i < soMon - 1; i++) {
+		for (int j = i + 1; j < soMon; j++) {
+			if (soLuongBan[i] < soLuongBan[j]) {
+				int tempSL = soLuongBan[i];
+				soLuongBan[i] = soLuongBan[j];
+				soLuongBan[j] = tempSL;
+
+				string tempMon = dsMon[i];
+				dsMon[i] = dsMon[j];
+				dsMon[j] = tempMon;
+			}
+		}
+	}
+
+	veDuong(60);
+	cout << format("| {:<5} | {:<35} | {:<12} |", "TOP", "TÊN MÓN", "SỐ LƯỢNG") << endl;
+	veDuong(60);
+
+	for (int i = 0; i < soMon && i < 10; i++) {
+		cout << format("| {:<5} | {:<35} | {:<12} |", i + 1, dsMon[i], soLuongBan[i]) << endl;
+	}
+	veDuong(60);
+}
+
+// =========================================================
+// CÁC HÀM CHỨC NĂNG CHÍNH
+// =========================================================
+void quanLiCoSoDuLieu() {
+	while (true) {
+		system("cls");
+		veTieuDe("[I] QUẢN LÍ CƠ SỞ DỮ LIỆU");
+		cout << format("{:<60}", "[1] Quản lí đồ uống") << endl;
+		cout << format("{:<60}", "[2] Quản lí đồ ăn") << endl;
+		cout << format("{:<60}", "[3] Quản lí topping") << endl;
+		cout << format("{:<60}", "[4] Cấu hình order") << endl;
+		cout << format("{:<60}", "[5] Menu chi tiết") << endl;
+		cout << format("{:<60}", "[0] Quay lại màn hình chính") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) quanLiDoUong();
+		else if (luaChon == 2) quanLiDoAn();
+		else if (luaChon == 3) quanLiTopping();
+		else if (luaChon == 4) cauHinhOrder();
+		else if (luaChon == 5) menuChiTiet();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+void quanLiDuLieuPhatSinh() {
+	while (true) {
+		system("cls");
+		veTieuDe("[II] QUẢN LÍ DỮ LIỆU PHÁT SINH");
+		cout << format("{:<60}", "[1] Quản lí bán hàng và order") << endl;
+		cout << format("{:<60}", "[2] Quản lí kho") << endl;
+		cout << format("{:<60}", "[3] Tra cứu dữ liệu giao dịch") << endl;
+		cout << format("{:<60}", "[0] Quay lại màn hình chính") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) quanLiBanHangVaOrder();
+		else if (luaChon == 2) quanLiKho();
+		else if (luaChon == 3) traCuuGiaoDich();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+void baoCaoThongKe() {
+	while (true) {
+		system("cls");
+		veTieuDe("[III] BÁO CÁO THỐNG KÊ");
+		cout << format("{:<60}", "[1] Thống kê bán hàng") << endl;
+		cout << format("{:<60}", "[2] Thống kê món bán chạy") << endl;
+		cout << format("{:<60}", "[0] Quay lại màn hình chính") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) thongKeBanHang();
+		else if (luaChon == 2) thongKeMonBanChay();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+}
+
+// =========================================================
+// MAIN
+// =========================================================
+int main() {
+	while (true) {
+		system("cls");
+		veTieuDe("CỬA HÀNG CÀ PHÊ");
+		cout << format("{:<60}", "[1] QUẢN LÍ CƠ SỞ DỮ LIỆU") << endl;
+		cout << format("{:<60}", "[2] QUẢN LÍ DỮ LIỆU PHÁT SINH") << endl;
+		cout << format("{:<60}", "[3] BÁO CÁO THỐNG KÊ") << endl;
+		cout << format("{:<60}", "[0] THOÁT CỬA HÀNG") << endl;
+		veDuong(60);
+		cout << " [*] CHỌN: ";
+
+		string boNhoDem;
+		getline(cin, boNhoDem);
+		int luaChon = 0;
+		if (boNhoDem != "") luaChon = stoi(boNhoDem);
+		if (luaChon == 0) break;
+
+		system("cls");
+		if (luaChon == 1) quanLiCoSoDuLieu();
+		else if (luaChon == 2) quanLiDuLieuPhatSinh();
+		else if (luaChon == 3) baoCaoThongKe();
+		else cout << "\n--> Lựa chọn không hợp lệ!" << endl;
+
+		dungManHinh();
+	}
+	cout << "\n=== CẢM ƠN QUÝ KHÁCH! ===" << endl;
+	cout << "Hẹn gặp lại! *_*" << endl;
+	return 0;
+}
